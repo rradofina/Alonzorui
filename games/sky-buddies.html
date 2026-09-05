@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Sky Buddies</title>
+  <title>Sky Buddies · AlonzoRui</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -60,6 +60,13 @@
       text-shadow: 0 5px 0 #0369a1; letter-spacing: -1px;
     }
     .cover p { font-size: 20px; color: #0c4a6e; max-width: 420px; }
+    .brand {
+      font-weight: 800; font-size: 18px; color: #0c4a6e; letter-spacing: -0.3px;
+    }
+    .brand .r {
+      color: #f59e0b; font-size: 1.12em;
+      text-shadow: 0 2px 0 #b45309, 0 0 12px rgba(255,209,102,.45);
+    }
     .pair { display: flex; gap: 12px; margin: 8px 0 4px; flex-wrap: wrap; justify-content: center; }
     .chip {
       font-weight: 800; padding: 8px 14px; border-radius: 999px; font-size: 18px;
@@ -114,6 +121,7 @@
   <div class="cover" id="start">
     <div class="emoji">🐦✈️</div>
     <h1>Sky Buddies</h1>
+    <p class="brand">Alonzo<span class="r">R</span>ui</p>
     <p>Fly together. Dash through the glowing rings. First to 8 wins!</p>
     <div class="pair">
       <span class="chip you">You: WASD</span>
@@ -125,6 +133,7 @@
   <div class="cover off" id="win">
     <div class="confetti" id="confetti"></div>
     <div class="emoji" id="winEmoji">🌈</div>
+    <p class="brand">Alonzo<span class="r">R</span>ui</p>
     <h1 id="winTitle">Sky heroes!</h1>
     <p id="winText">What a sunny race.</p>
     <button class="play" id="again">Play again</button>
@@ -654,7 +663,7 @@
       const emoji = document.getElementById("winEmoji");
       if (who === "you") {
         title.textContent = "You win!";
-        text.textContent = "Alon zipped through the sky rings!";
+        text.textContent = "AlonzoRui zipped through the sky rings!";
         emoji.textContent = "🐦";
       } else {
         title.textContent = "Dad wins!";
