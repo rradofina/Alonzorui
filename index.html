@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Alonzorui</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; font-family: "Trebuchet MS", "Comic Sans MS", system-ui, sans-serif; color: #fff; touch-action: manipulation; }
+    body {
+      background:
+        radial-gradient(circle at 15% 0%, #38bdf8 0%, transparent 42%),
+        radial-gradient(circle at 90% 18%, #f472b6 0%, transparent 38%),
+        #071a2e;
+      padding: 28px 18px 48px;
+    }
+    header { text-align: center; margin-bottom: 22px; }
+    .logo { font-size: 48px; line-height: 1; }
+    h1 { font-size: clamp(36px, 9vw, 52px); letter-spacing: -1px; text-shadow: 0 5px 0 #0c4a6e; }
+    .sub { opacity: .88; font-size: 18px; margin-top: 6px; }
+    .count { margin-top: 8px; font-weight: 800; font-size: 15px; opacity: .8; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; max-width: 720px; margin: 0 auto; }
+    .card {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      background: #0f2a44; border-radius: 28px; overflow: hidden;
+      box-shadow: 0 10px 0 rgba(0,0,0,.28);
+    }
+    .card:active { transform: translateY(4px); box-shadow: 0 6px 0 rgba(0,0,0,.28); }
+    .art { height: 130px; display: flex; align-items: center; justify-content: center; font-size: 68px; }
+    .art.sky { background: linear-gradient(160deg, #0ea5e9, #f9a8d4 70%, #fde68a); }
+    .meta { padding: 12px 14px 16px; }
+    .name { font-size: 20px; font-weight: 800; }
+    .tag { font-size: 14px; opacity: .75; margin-top: 2px; }
+    .pill {
+      display: inline-block; margin-top: 10px; background: #ffd166; color: #3b2100;
+      font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">🪁✨</div>
+    <h1>Alonzorui</h1>
+    <p class="sub">Alon's games. Tap a card to play with Dad.</p>
+    <p class="count">1 game</p>
+  </header>
+  <main class="grid">
+    <a class="card" href="games/sky-buddies.html">
+      <div class="art sky">✈️</div>
+      <div class="meta">
+        <div class="name">Sky Buddies</div>
+        <div class="tag">You WASD · Dad arrows</div>
+        <span class="pill">Play</span>
+      </div>
+    </a>
+  </main>
+</body>
+</html>
