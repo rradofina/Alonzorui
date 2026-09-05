@@ -46,6 +46,86 @@
     .hints.off { display: none; }
     .hints .you { color: #fecdd3; }
     .hints .dad { color: #bae6fd; }
+    .for-touch { display: none; }
+    .pads {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: max(8px, env(safe-area-inset-bottom));
+      z-index: 7;
+      display: none;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 8px;
+      pointer-events: none;
+      touch-action: none;
+    }
+    .pads.off { display: none !important; }
+    .pad {
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pad-tag {
+      font-weight: 800; font-size: 18px; letter-spacing: 0.08em;
+      padding: 4px 14px; border-radius: 999px;
+      box-shadow: 0 4px 0 rgba(0,0,0,.2);
+    }
+    .pad.you .pad-tag { background: #fb7185; color: #fff7ed; }
+    .pad.dad .pad-tag { background: #38bdf8; color: #082f49; }
+    .dpad {
+      position: relative;
+      width: min(44vw, 200px);
+      height: min(44vw, 200px);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 7px;
+      filter: drop-shadow(0 8px 0 rgba(0,0,0,.18));
+    }
+    @media (orientation: landscape) {
+      .dpad { width: min(28vh, 168px); height: min(28vh, 168px); }
+      .pad-tag { font-size: 15px; }
+    }
+    .dir {
+      border: 0; border-radius: 22px;
+      font-size: 28px; font-weight: 800; line-height: 1;
+      display: grid; place-items: center;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      transition: transform 80ms ease, box-shadow 80ms ease, filter 80ms ease;
+    }
+    .dir.up { grid-area: 1 / 2; }
+    .dir.left { grid-area: 2 / 1; }
+    .dir.right { grid-area: 2 / 3; }
+    .dir.down { grid-area: 3 / 2; }
+    .pad.you .dir { background: #fb7185; color: #fff7ed; box-shadow: inset 0 -5px 0 #be123c; }
+    .pad.dad .dir { background: #38bdf8; color: #082f49; box-shadow: inset 0 -5px 0 #0369a1; }
+    .nub {
+      grid-area: 2 / 2;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .pad.you .nub { background: rgba(255, 241, 242, .35); }
+    .pad.dad .nub { background: rgba(8, 47, 73, .18); }
+    .dir.held, .pad.held .dir.held {
+      transform: scale(0.9);
+      filter: brightness(1.15);
+      box-shadow: 0 0 0 5px rgba(255,255,255,.7), 0 0 22px rgba(255,255,255,.45);
+    }
+    .pad.you.held { filter: drop-shadow(0 0 12px rgba(251,113,133,.7)); }
+    .pad.dad.held { filter: drop-shadow(0 0 12px rgba(56,189,248,.7)); }
+    @media (pointer: coarse), (max-width: 900px) {
+      .pads:not(.off) { display: flex; }
+      .hints { display: none !important; }
+      .for-keys { display: none; }
+      .for-touch { display: inline; }
+    }
     .cover {
       position: fixed; inset: 0; z-index: 10;
       display: flex; align-items: center; justify-content: center; flex-direction: column;
@@ -118,14 +198,36 @@
     <div class="you">You: WASD</div>
     <div class="dad">Dad: ←↑↓→</div>
   </div>
+  <div id="pads" class="pads off">
+    <div class="pad you" id="padYou">
+      <div class="pad-tag">YOU</div>
+      <div class="dpad" aria-label="You fly">
+        <button type="button" class="dir up" data-dir="up" tabindex="-1">▲</button>
+        <button type="button" class="dir left" data-dir="left" tabindex="-1">◀</button>
+        <button type="button" class="dir right" data-dir="right" tabindex="-1">▶</button>
+        <button type="button" class="dir down" data-dir="down" tabindex="-1">▼</button>
+        <div class="nub"></div>
+      </div>
+    </div>
+    <div class="pad dad" id="padDad">
+      <div class="pad-tag">DAD</div>
+      <div class="dpad" aria-label="Dad fly">
+        <button type="button" class="dir up" data-dir="up" tabindex="-1">▲</button>
+        <button type="button" class="dir left" data-dir="left" tabindex="-1">◀</button>
+        <button type="button" class="dir right" data-dir="right" tabindex="-1">▶</button>
+        <button type="button" class="dir down" data-dir="down" tabindex="-1">▼</button>
+        <div class="nub"></div>
+      </div>
+    </div>
+  </div>
   <div class="cover" id="start">
     <div class="emoji">🐦✈️</div>
     <h1>Sky Buddies</h1>
     <p class="brand">Alonzo<span class="r">R</span>ui</p>
     <p>Fly together. Dash through the glowing rings. First to 8 wins!</p>
     <div class="pair">
-      <span class="chip you">You: WASD</span>
-      <span class="chip dad">Dad: ←↑↓→</span>
+      <span class="chip you"><span class="for-keys">You: WASD</span><span class="for-touch">You: left pad</span></span>
+      <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
     </div>
     <button class="play" id="go">Play</button>
     <a class="home-btn" href="../index.html">Home</a>
@@ -153,6 +255,10 @@
     const RING_COUNT = 8;
     const LIMIT = 46;
     const keys = new Set();
+    const pads = {
+      you: { left: false, right: false, up: false, down: false },
+      dad: { left: false, right: false, up: false, down: false }
+    };
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -183,6 +289,76 @@
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
     });
     addEventListener("keyup", (e) => keys.delete(e.code));
+    document.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+    document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+    function bindPad(el, who) {
+      const zone = el.querySelector(".dpad");
+      const pointers = new Map();
+      function read(x, y) {
+        const r = zone.getBoundingClientRect();
+        const nx = ((x - r.left) / Math.max(1, r.width)) * 2 - 1;
+        const ny = ((y - r.top) / Math.max(1, r.height)) * 2 - 1;
+        const dead = 0.16;
+        return {
+          left: nx < -dead,
+          right: nx > dead,
+          up: ny < -dead,
+          down: ny > dead
+        };
+      }
+      function merge() {
+        const next = { left: false, right: false, up: false, down: false };
+        pointers.forEach((d) => {
+          next.left = next.left || d.left;
+          next.right = next.right || d.right;
+          next.up = next.up || d.up;
+          next.down = next.down || d.down;
+        });
+        pads[who] = next;
+        el.classList.toggle("held", pointers.size > 0);
+        el.querySelectorAll("[data-dir]").forEach((btn) => {
+          btn.classList.toggle("held", next[btn.getAttribute("data-dir")]);
+        });
+      }
+      function down(e) {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+        pointers.set(e.pointerId, read(e.clientX, e.clientY));
+        merge();
+      }
+      function move(e) {
+        if (!pointers.has(e.pointerId)) return;
+        e.preventDefault();
+        pointers.set(e.pointerId, read(e.clientX, e.clientY));
+        merge();
+      }
+      function up(e) {
+        if (!pointers.has(e.pointerId)) return;
+        e.preventDefault();
+        pointers.delete(e.pointerId);
+        merge();
+      }
+      el.addEventListener("pointerdown", down);
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+      el.addEventListener("lostpointercapture", up);
+      el.addEventListener("contextmenu", (e) => e.preventDefault());
+    }
+    bindPad(document.getElementById("padYou"), "you");
+    bindPad(document.getElementById("padDad"), "dad");
+
+    function steered(who, keyLeft, keyRight, keyUp, keyDown) {
+      return {
+        left: keys.has(keyLeft) || pads[who].left,
+        right: keys.has(keyRight) || pads[who].right,
+        up: keys.has(keyUp) || pads[who].up,
+        down: keys.has(keyDown) || pads[who].down
+      };
+    }
 
     function beep(freq, dur, type, vol) {
       try {
@@ -655,6 +831,8 @@
       if (winner) return;
       winner = who;
       playing = false;
+      document.getElementById("pads").classList.add("off");
+      document.getElementById("hints").classList.add("off");
       fanfare();
       sparks.burst(you.pos, 0xfb7185, 50);
       sparks.burst(dad.pos, 0x38bdf8, 50);
@@ -728,8 +906,10 @@
       });
 
       if (playing) {
-        steer(you, keys.has("KeyA"), keys.has("KeyD"), keys.has("KeyW"), keys.has("KeyS"), dt);
-        steer(dad, keys.has("ArrowLeft"), keys.has("ArrowRight"), keys.has("ArrowUp"), keys.has("ArrowDown"), dt);
+        const y = steered("you", "KeyA", "KeyD", "KeyW", "KeyS");
+        const d = steered("dad", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown");
+        steer(you, y.left, y.right, y.up, y.down, dt);
+        steer(dad, d.left, d.right, d.up, d.down, dt);
         you.cool -= dt; dad.cool -= dt;
         bounceWorld(you); bounceWorld(dad);
         bouncePair(you, dad);
@@ -764,6 +944,9 @@
       document.getElementById("win").classList.add("off");
       document.getElementById("hud").classList.remove("off");
       document.getElementById("hints").classList.remove("off");
+      document.getElementById("pads").classList.remove("off");
+      pads.you = { left: false, right: false, up: false, down: false };
+      pads.dad = { left: false, right: false, up: false, down: false };
       playing = true;
       beep(523, 0.1, "triangle", 0.1);
       setTimeout(() => beep(784, 0.12, "triangle", 0.1), 90);
