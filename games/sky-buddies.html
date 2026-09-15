@@ -296,8 +296,9 @@
     import * as THREE from "three";
 
     const LANE_W = 1.85;
-    const YOU_CENTER = -3.7;
-    const DAD_CENTER = 3.7;
+    // Camera looks down +Z, so +X is screen-left. You (left pad) must sit on +X.
+    const YOU_CENTER = 3.7;
+    const DAD_CENTER = -3.7;
     const SEG_LEN = 18;
     const SEG_COUNT = 14;
     const START_SPEED = 11.2;
@@ -665,8 +666,8 @@
       median.position.set(0, 0.02, 0);
       g.add(median);
 
-      [-6.7, 6.7].forEach((x, i) => {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.55, SEG_LEN), mat(i ? 0x38bdf8 : 0xfb7185));
+      [-6.7, 6.7].forEach((x) => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.55, SEG_LEN), mat(x > 0 ? 0xfb7185 : 0x38bdf8));
         rail.position.set(x, 0.2, 0);
         g.add(rail);
         const cap = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, SEG_LEN), mat(0xfde047));
@@ -1000,8 +1001,8 @@
     function paintHud() {
       document.getElementById("youScore").textContent = String(you.score | 0);
       document.getElementById("dadScore").textContent = String(dad.score | 0);
-      document.getElementById("youHearts").textContent = you.fullHeart.repeat(you.hearts) + you.emptyHeart.repeat(HEARTS - you.hearts);
-      document.getElementById("dadHearts").textContent = dad.fullHeart.repeat(dad.hearts) + dad.emptyHeart.repeat(HEARTS - dad.hearts);
+      document.getElementById("youHearts").textContent = you.out ? "☁️ OUT" : you.fullHeart.repeat(you.hearts) + you.emptyHeart.repeat(HEARTS - you.hearts);
+      document.getElementById("dadHearts").textContent = dad.out ? "☁️ OUT" : dad.fullHeart.repeat(dad.hearts) + dad.emptyHeart.repeat(HEARTS - dad.hearts);
       document.getElementById("distLabel").textContent = (runZ | 0) + "m";
     }
 
