@@ -6,9 +6,11 @@ Live: https://alonzorui.vercel.app
 
 ## Sky Buddies
 
-Couch co-op 3D flying race at `games/sky-buddies.html`.
+Couch co-op 3D endless sky runner at `games/sky-buddies.html`.
 
+- Auto-fly forward along a 3-lane sky road
 - **You:** WASD or the left thumb pad
 - **Dad:** arrow keys or the right thumb pad
-- First flyer through 8 glowing rings wins
-- Soft bounces, no fail-out, midpoint camera
+- Left/right change lanes, up jumps, down ducks
+- Coins and stars for score, 3 hearts each
+- Higher score wins when both flyers are out
