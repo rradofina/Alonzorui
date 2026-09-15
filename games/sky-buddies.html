@@ -296,9 +296,10 @@
     import * as THREE from "three";
 
     const LANE_W = 1.85;
-    // Camera looks down +Z, so +X is screen-left. You (left pad) must sit on +X.
-    const YOU_CENTER = 3.7;
-    const DAD_CENTER = -3.7;
+    // Camera sits at +Z looking toward -Z, so +X is screen-right.
+    // You (left pad / WASD) sits on -X; Dad (right pad / arrows) on +X.
+    const YOU_CENTER = -3.7;
+    const DAD_CENTER = 3.7;
     const SEG_LEN = 18;
     const SEG_COUNT = 14;
     const START_SPEED = 11.2;
@@ -325,7 +326,7 @@
     scene.fog = new THREE.Fog(0xb8e4ff, 42, 130);
 
     const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 220);
-    camera.position.set(0, 6.2, -12);
+    camera.position.set(0, 6.2, 12);
 
     scene.add(new THREE.HemisphereLight(0x9ad8ff, 0xffe7a8, 1.05));
     const sun = new THREE.DirectionalLight(0xfff4d2, 1.2);
@@ -474,7 +475,7 @@
         mat(0x5ec8e8, { roughness: 0.35 })
       );
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(0, -8, 40);
+      mesh.position.set(0, -8, -40);
       scene.add(mesh);
     }
 
@@ -486,7 +487,7 @@
         new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.28 })
       );
       g.add(core, halo);
-      g.position.set(-40, 36, 70);
+      g.position.set(-40, 36, -70);
       scene.add(g);
     }
 
@@ -671,7 +672,7 @@
       g.add(median);
 
       [-6.7, 6.7].forEach((x) => {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.55, SEG_LEN), mat(x > 0 ? 0xfb7185 : 0x38bdf8));
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.55, SEG_LEN), mat(x < 0 ? 0xfb7185 : 0x38bdf8));
         rail.position.set(x, 0.2, 0);
         g.add(rail);
         const cap = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, SEG_LEN), mat(0xfde047));
@@ -812,7 +813,7 @@
           x: p.x, y: p.y, z: p.z,
           vx: (Math.random() - 0.5) * 0.5,
           vy: (Math.random() - 0.5) * 0.5,
-          vz: -2 - Math.random(),
+          vz: 2 + Math.random(),
           life: 0.4, r: c.r, g: c.g, b: c.b
         });
       }
@@ -871,7 +872,7 @@
     let speed = START_SPEED;
     let nextSpawn = 22;
     let endTimer = 0;
-    let camLook = new THREE.Vector3(0, 2.2, 10);
+    let camLook = new THREE.Vector3(0, 2.2, -10);
     let last = performance.now();
     let shake = 0;
 
@@ -1088,7 +1089,7 @@
       const duck = p.want === "low" ? 0.72 : 1;
       p.bird.group.scale.set(1, duck, 1);
       p.bird.group.position.set(p.x, p.y, p.z);
-      p.bird.group.rotation.set(-p.pitch * 0.8, 0, p.bank);
+      p.bird.group.rotation.set(-p.pitch * 0.8, Math.PI, -p.bank);
       p.bird.shadow.position.set(p.x, 0.05, p.z);
       const shadowScale = p.want === "high" ? 0.45 : p.want === "low" ? 1.15 : 0.85;
       p.bird.shadow.scale.setScalar(shadowScale);
@@ -1097,6 +1098,7 @@
     }
 
     function tickPlayer(p, input, dt) {
+      // A / ← decrease world X (screen-left). D / → increase world X (screen-right).
       if (!p.prevLeft && input.left) p.lane = Math.max(-1, p.lane - 1);
       if (!p.prevRight && input.right) p.lane = Math.min(1, p.lane + 1);
       p.prevLeft = input.left;
@@ -1127,7 +1129,7 @@
       const base = Math.floor(runZ / SEG_LEN) - 1;
       segments.forEach((seg, i) => {
         const idx = base + i;
-        seg.position.z = idx * SEG_LEN + SEG_LEN * 0.5 - runZ;
+        seg.position.z = -(idx * SEG_LEN + SEG_LEN * 0.5 - runZ);
       });
     }
 
@@ -1137,7 +1139,7 @@
         const wrap = 160;
         let z = 20 + i * 12 - (runZ * 0.55);
         z = ((z % wrap) + wrap) % wrap - 20;
-        c.position.z = z;
+        c.position.z = -z;
         c.position.y = 5 + (i % 5) * 1.8 + Math.sin(c.userData.spin) * 0.4;
       });
       islands.forEach((isle, i) => {
@@ -1145,7 +1147,7 @@
         let z = 30 + i * 36 - runZ * 0.42;
         const wrap = 220;
         z = ((z % wrap) + wrap) % wrap - 10;
-        isle.position.z = z;
+        isle.position.z = -z;
         isle.position.y = isle.userData.baseY + Math.sin(isle.userData.bob) * 0.28;
       });
     }
@@ -1153,7 +1155,7 @@
     function updateItems(dt) {
       items.forEach((it) => {
         if (!it.live) return;
-        const relZ = it.spawnZ - runZ;
+        const relZ = runZ - it.spawnZ;
         it.mesh.position.set(laneX(it.who === "you" ? you : dad, it.lane), it.y, relZ);
         it.spin += dt * (it.type === "star" ? 3.4 : it.type === "coin" ? 4.2 : 1);
         if (it.type === "coin" || it.type === "star") {
@@ -1169,7 +1171,7 @@
             w.wingR.rotation.z = -Math.sin(it.spin * 10) * 0.5;
           }
         }
-        if (relZ < -8) {
+        if (relZ > 8) {
           it.live = false;
           it.mesh.visible = false;
         }
@@ -1179,7 +1181,7 @@
     function collide() {
       items.forEach((it) => {
         if (!it.live) return;
-        const relZ = it.spawnZ - runZ;
+        const relZ = runZ - it.spawnZ;
         const p = it.who === "you" ? you : dad;
         if (it.type === "coin" || it.type === "star") {
           if (hitsPickup(p, it, relZ)) collect(p, it);
@@ -1197,8 +1199,8 @@
       const height = portrait ? 10.2 : 5.6;
       const lookAhead = portrait ? 14 : 16;
       const midX = (you.x + dad.x) * 0.5 * 0.15;
-      const desired = new THREE.Vector3(midX, height, -back);
-      const look = new THREE.Vector3(midX * 0.4, 2.1, lookAhead);
+      const desired = new THREE.Vector3(midX, height, back);
+      const look = new THREE.Vector3(midX * 0.4, 2.1, -lookAhead);
       if (idle) {
         const t = performance.now() * 0.00025;
         desired.x = Math.sin(t) * 1.2;
