@@ -78,8 +78,12 @@ export const games = {
         if (ctx.data.snakes) {
           paint(ctx.data.snakes.alon, "#fb7185");
           paint(ctx.data.snakes.dad, "#38bdf8");
+          const ah = ctx.data.snakes.alon.body[0];
+          const dh = ctx.data.snakes.dad.body[0];
+          if (ah) ctx.head(f.x + (ah.x + 0.5) * cell, f.y + (ah.y + 0.5) * cell, "alon", cell * 0.55);
+          if (dh) ctx.head(f.x + (dh.x + 0.5) * cell, f.y + (dh.y + 0.5) * cell, "dad", cell * 0.55);
         }
-        if (ctx.data.bite) ctx.icon(f.x + ctx.data.bite.x * cell + cell / 2, f.y + ctx.data.bite.y * cell + cell / 2, "🍜", "#fbbf24", cell * 0.32);
+        if (ctx.data.bite) ctx.prop("bite", f.x + ctx.data.bite.x * cell + cell / 2, f.y + ctx.data.bite.y * cell + cell / 2, cell * 0.32);
         ctx.drawJuice();
       });
     }
@@ -150,6 +154,9 @@ export const games = {
         if (ctx.data.p) {
           paint(ctx.data.p.alon.trail, "#fb7185");
           paint(ctx.data.p.dad.trail, "#38bdf8");
+          const a = ctx.data.p.alon, d = ctx.data.p.dad;
+          if (a.live) ctx.head(f.x + (a.x + 0.5) * cell, f.y + (a.y + 0.5) * cell, "alon", 14);
+          if (d.live) ctx.head(f.x + (d.x + 0.5) * cell, f.y + (d.y + 0.5) * cell, "dad", 14);
         }
         ctx.drawJuice();
       });
@@ -215,9 +222,11 @@ export const games = {
         ctx.drawTheme("blocks");
         if (!ctx.data.well) return;
         const { g, field: f } = ctx;
-        const bw = f.w / 2 - 24;
-        drawWell(g, ctx.data.well.alon, ctx.data.piece.alon, f.x + 12, f.y + 28, bw, f.h - 40, "#fb7185");
-        drawWell(g, ctx.data.well.dad, ctx.data.piece.dad, f.x + f.w / 2 + 12, f.y + 28, bw, f.h - 40, "#38bdf8");
+        const bw = f.w / 2 - 28;
+        g.fillStyle = "rgba(255,255,255,.08)";
+        g.fillRect(f.x + f.w / 2 - 3, f.y + 20, 6, f.h - 28);
+        drawWell(g, ctx.data.well.alon, ctx.data.piece.alon, f.x + 16, f.y + 36, bw, f.h - 52, "#fb7185", "ALON");
+        drawWell(g, ctx.data.well.dad, ctx.data.piece.dad, f.x + f.w / 2 + 16, f.y + 36, bw, f.h - 52, "#38bdf8", "DAD");
         ctx.drawJuice();
       });
     }
@@ -265,8 +274,8 @@ export const games = {
         if (!ctx.data.board) return;
         const { g, field: f } = ctx;
         const bw = f.w / 2 - 20;
-        paintBoard(g, ctx.data.board.alon, ctx.data.col.alon, f.x + 10, f.y + 28, bw, f.h - 40, "#fb7185");
-        paintBoard(g, ctx.data.board.dad, ctx.data.col.dad, f.x + f.w / 2 + 10, f.y + 28, bw, f.h - 40, "#38bdf8");
+        paintBoard(g, ctx.data.board.alon, ctx.data.col.alon, f.x + 10, f.y + 28, bw, f.h - 40, "#fb7185", "ALON");
+        paintBoard(g, ctx.data.board.dad, ctx.data.col.dad, f.x + f.w / 2 + 10, f.y + 28, bw, f.h - 40, "#38bdf8", "DAD");
         ctx.drawJuice();
       });
     }
@@ -334,7 +343,7 @@ export const games = {
         (ctx.data.holes || []).forEach((hole) => {
           ctx.g.fillStyle = "#365314";
           ctx.g.beginPath(); ctx.g.ellipse(hole.x, hole.y + 12, 34, 16, 0, 0, Math.PI * 2); ctx.g.fill();
-          if (hole.who) ctx.icon(hole.x, hole.y - 6, hole.who === "alon" ? "🐹" : "🐭", hole.who === "alon" ? "#fb7185" : "#38bdf8", 18);
+          if (hole.who) ctx.prop("mole", hole.x, hole.y - 6, 18, { color: hole.who === "alon" ? "#fb7185" : "#38bdf8" });
         });
         ctx.drawBuddies({ alon: "🔨", dad: "🔨" });
         ctx.drawJuice();
@@ -417,11 +426,15 @@ export const games = {
           { dir: "right", x: f.x + f.w * 0.74, y: f.y + f.h / 2, e: "▶" }
         ];
         const lit = ctx.data.phase === "show" ? ctx.data.seq[ctx.data.i] : null;
+        const cols = { up: "#fde047", down: "#38bdf8", left: "#fb7185", right: "#4ade80" };
         pads.forEach((p) => {
-          ctx.g.fillStyle = p.dir === lit ? "#fde047" : "rgba(255,255,255,.18)";
-          ctx.g.beginPath(); ctx.g.arc(p.x, p.y, 48, 0, Math.PI * 2); ctx.g.fill();
+          ctx.g.fillStyle = p.dir === lit ? cols[p.dir] : "rgba(255,255,255,.16)";
+          ctx.g.beginPath(); ctx.g.arc(p.x, p.y, 52, 0, Math.PI * 2); ctx.g.fill();
+          ctx.g.strokeStyle = cols[p.dir];
+          ctx.g.lineWidth = p.dir === lit ? 8 : 3;
+          ctx.g.stroke();
           ctx.g.fillStyle = "#fff";
-          ctx.g.font = "32px Trebuchet MS"; ctx.g.textAlign = "center"; ctx.g.textBaseline = "middle";
+          ctx.g.font = "800 32px Trebuchet MS"; ctx.g.textAlign = "center"; ctx.g.textBaseline = "middle";
           ctx.g.fillText(p.e, p.x, p.y);
         });
         ctx.drawBuddies({ alon: "✨", dad: "✨" });
@@ -517,17 +530,35 @@ function clearLines(well) {
   }
   return n;
 }
-function drawWell(g, well, piece, x, y, w, h, color) {
+function drawWell(g, well, piece, x, y, w, h, color, who) {
   if (!well) return;
   const cw = w / 8, ch = h / 12;
-  g.fillStyle = "rgba(0,0,0,.28)";
+  g.fillStyle = "rgba(0,0,0,.45)";
+  g.beginPath();
+  g.roundRect(x - 6, y - 18, w + 12, h + 24, 14);
+  g.fill();
+  g.fillStyle = color;
+  g.font = "800 13px Trebuchet MS, sans-serif";
+  g.textAlign = "center";
+  g.fillText(who || "", x + w / 2, y - 4);
+  g.fillStyle = "rgba(255,255,255,.06)";
   g.fillRect(x, y, w, h);
+  g.strokeStyle = "rgba(255,255,255,.12)";
+  g.lineWidth = 1;
+  for (let c = 0; c <= 8; c++) {
+    g.beginPath(); g.moveTo(x + c * cw, y); g.lineTo(x + c * cw, y + h); g.stroke();
+  }
+  for (let r = 0; r <= 12; r++) {
+    g.beginPath(); g.moveTo(x, y + r * ch); g.lineTo(x + w, y + r * ch); g.stroke();
+  }
   const paint = (c, r, on) => {
     if (!on) return;
     g.fillStyle = color;
     g.beginPath();
     g.roundRect(x + c * cw + 2, y + r * ch + 2, cw - 4, ch - 4, 4);
     g.fill();
+    g.fillStyle = "rgba(255,255,255,.28)";
+    g.fillRect(x + c * cw + 4, y + r * ch + 4, cw - 10, 4);
   };
   well.forEach((row, r) => row.forEach((v, c) => paint(c, r, v)));
   if (piece) {
@@ -565,9 +596,13 @@ function wonBoard(b) {
   }
   return false;
 }
-function paintBoard(g, board, col, x, y, w, h, color) {
+function paintBoard(g, board, col, x, y, w, h, color, who) {
   if (!board) return;
   const cw = w / 7, ch = (h - 34) / 6;
+  g.fillStyle = color;
+  g.font = "800 13px Trebuchet MS, sans-serif";
+  g.textAlign = "center";
+  g.fillText(who || "", x + w / 2, y + 12);
   g.fillStyle = "#1d4ed8";
   g.beginPath(); g.roundRect(x, y + 30, w, h - 30, 16); g.fill();
   const rad = Math.min(cw, ch) * 0.38;

@@ -1,3 +1,5 @@
+import { paintWorld, paintBuddy, paintPlat, paintIcon, paintLabel, paintProp, paintHead } from "./art.js";
+
 export const ALON = "alon";
 export const DAD = "dad";
 export const COLORS = {
@@ -49,47 +51,12 @@ export function pop() {
 export function whoosh() {
   beep(220, 0.12, "sawtooth", 0.03);
 }
+export function thud() {
+  beep(140, 0.05, "sine", 0.05);
+}
 export function goalHorn() {
   [392, 523, 659, 784].forEach((f, i) => setTimeout(() => beep(f, 0.16, "square", 0.08), i * 90));
 }
-
-const THEMES = {
-  meadow: { sky: ["#7dd3fc", "#bbf7d0"], hill: "#4ade80", hill2: "#86efac", field: "rgba(255,255,255,.2)" },
-  candy: { sky: ["#fce7f3", "#fde68a"], hill: "#fb7185", hill2: "#f9a8d4", field: "rgba(255,255,255,.28)" },
-  ice: { sky: ["#e0f2fe", "#7dd3fc"], hill: "#bae6fd", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
-  sunset: { sky: ["#38bdf8", "#f9a8d4"], hill: "#fda4af", hill2: "#fde68a", field: "rgba(255,255,255,.18)" },
-  sea: { sky: ["#67e8f9", "#0369a1"], hill: "#0ea5e9", hill2: "#22d3ee", field: "rgba(255,255,255,.1)" },
-  jungle: { sky: ["#fde68a", "#86efac"], hill: "#22c55e", hill2: "#4ade80", field: "rgba(255,255,255,.16)" },
-  night: { sky: ["#1e1b4b", "#312e81"], hill: "#312e81", hill2: "#1e1b4b", field: "rgba(255,255,255,.08)" },
-  paint: { sky: ["#fdf4ff", "#e0f2fe"], hill: "#c4b5fd", hill2: "#f9a8d4", field: "rgba(255,255,255,.35)" },
-  party: { sky: ["#fce7f3", "#fde68a"], hill: "#f472b6", hill2: "#fbbf24", field: "rgba(255,255,255,.22)" },
-  track: { sky: ["#fdba74", "#facc15"], hill: "#f97316", hill2: "#fde68a", field: "rgba(255,255,255,.2)" },
-  snow: { sky: ["#e0f2fe", "#93c5fd"], hill: "#fff", hill2: "#dbeafe", field: "rgba(255,255,255,.3)" },
-  grass: { sky: ["#86efac", "#4ade80"], hill: "#16a34a", hill2: "#86efac", field: "rgba(255,255,255,.2)" },
-  sand: { sky: ["#fde68a", "#fb923c"], hill: "#fbbf24", hill2: "#fdba74", field: "rgba(255,255,255,.22)" },
-  pong: { sky: ["#fb7185", "#fbbf24"], hill: "#fb7185", hill2: "#fde68a", field: "rgba(255,255,255,.16)" },
-  "ice rink": { sky: ["#38bdf8", "#e0f2fe"], hill: "#7dd3fc", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
-  gold: { sky: ["#fde047", "#fb7185"], hill: "#f59e0b", hill2: "#fbbf24", field: "rgba(255,255,255,.2)" },
-  potato: { sky: ["#fdba74", "#fb7185"], hill: "#ea580c", hill2: "#fdba74", field: "rgba(255,255,255,.2)" },
-  crate: { sky: ["#fef3c7", "#86efac"], hill: "#ca8a04", hill2: "#fde68a", field: "rgba(255,255,255,.3)" },
-  mirror: { sky: ["#ede9fe", "#f9a8d4"], hill: "#c4b5fd", hill2: "#ddd6fe", field: "rgba(255,255,255,.3)" },
-  bright: { sky: ["#fff7ed", "#bae6fd"], hill: "#fdba74", hill2: "#fde68a", field: "rgba(12,74,110,.06)" },
-  cards: { sky: ["#f3e8ff", "#fde68a"], hill: "#a78bfa", hill2: "#ddd6fe", field: "rgba(255,255,255,.25)" },
-  tower: { sky: ["#fff7ed", "#fdba74"], hill: "#fb923c", hill2: "#fde68a", field: "rgba(255,255,255,.28)" },
-  pillow: { sky: ["#fbcfe8", "#c4b5fd"], hill: "#f9a8d4", hill2: "#e9d5ff", field: "rgba(255,255,255,.28)" },
-  frost: { sky: ["#e0f2fe", "#38bdf8"], hill: "#fff", hill2: "#bae6fd", field: "rgba(255,255,255,.22)" },
-  sumo: { sky: ["#fde68a", "#f97316"], hill: "#fb923c", hill2: "#fde047", field: "rgba(255,255,255,.22)" },
-  coins: { sky: ["#facc15", "#fb923c"], hill: "#f59e0b", hill2: "#fde68a", field: "rgba(255,255,255,.18)" },
-  orchard: { sky: ["#86efac", "#fb7185"], hill: "#22c55e", hill2: "#bbf7d0", field: "rgba(255,255,255,.2)" },
-  soap: { sky: ["#67e8f9", "#a78bfa"], hill: "#22d3ee", hill2: "#c4b5fd", field: "rgba(255,255,255,.16)" },
-  pets: { sky: ["#86efac", "#f9a8d4"], hill: "#4ade80", hill2: "#fbcfe8", field: "rgba(255,255,255,.22)" },
-  noodle: { sky: ["#dcfce7", "#86efac"], hill: "#14532d", hill2: "#22c55e", field: "rgba(20,83,45,.55)" },
-  glow: { sky: ["#020617", "#0f172a"], hill: "#022c22", hill2: "#164e63", field: "rgba(255,255,255,.04)" },
-  blocks: { sky: ["#1e1b4b", "#312e81"], hill: "#1e1b4b", hill2: "#4c1d95", field: "rgba(255,255,255,.06)" },
-  connect: { sky: ["#fff7ed", "#dbeafe"], hill: "#1d4ed8", hill2: "#93c5fd", field: "rgba(255,255,255,.25)" },
-  mole: { sky: ["#86efac", "#4ade80"], hill: "#365314", hill2: "#65a30d", field: "#bbf7d0" },
-  spark: { sky: ["#312e81", "#1e1b4b"], hill: "#4c1d95", hill2: "#312e81", field: "rgba(255,255,255,.08)" }
-};
 
 function injectShell(spec) {
   document.title = `${spec.title} · AlonzoRui`;
@@ -231,12 +198,6 @@ function bindPad(el, who, pads) {
   el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
-function iHash(s) {
-  let h = 0;
-  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return (h % 7) * 0.4;
-}
-
 export function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 export function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
 export function aabb(a, b) {
@@ -263,59 +224,12 @@ function makePlayer(id) {
   };
 }
 
-export function drawBuddy(g, p, emoji) {
-  g.save();
-  g.translate(p.x, p.y);
-  g.scale(1, p.squish || 1);
-  g.fillStyle = "rgba(12,74,110,.22)";
-  g.beginPath();
-  g.ellipse(0, p.r * 0.95, p.r * 0.85, p.r * 0.28, 0, 0, Math.PI * 2);
-  g.fill();
-  g.beginPath();
-  g.fillStyle = p.color;
-  g.arc(0, 0, p.r, 0, Math.PI * 2);
-  g.fill();
-  g.strokeStyle = "rgba(255,255,255,.55)";
-  g.lineWidth = 3;
-  g.stroke();
-  g.fillStyle = "rgba(255,255,255,.32)";
-  g.beginPath();
-  g.arc(-p.r * 0.28, -p.r * 0.28, p.r * 0.32, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = "#fff";
-  g.beginPath();
-  g.arc(-p.r * 0.28, -p.r * 0.12, p.r * 0.18, 0, Math.PI * 2);
-  g.arc(p.r * 0.28, -p.r * 0.12, p.r * 0.18, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = "#1e293b";
-  g.beginPath();
-  g.arc(-p.r * 0.22 + p.facing * 3, -p.r * 0.1, p.r * 0.09, 0, Math.PI * 2);
-  g.arc(p.r * 0.34 + p.facing * 3, -p.r * 0.1, p.r * 0.09, 0, Math.PI * 2);
-  g.fill();
-  g.strokeStyle = "#1e293b";
-  g.lineWidth = 2.5;
-  g.beginPath();
-  g.arc(0, p.r * 0.2, p.r * 0.32, 0.15, Math.PI - 0.15);
-  g.stroke();
-  if (emoji) {
-    g.font = `${p.r}px serif`;
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    g.fillText(emoji, p.r * 0.55, -p.r * 0.7);
-  }
-  g.restore();
+export function drawBuddy(g, p, emoji, t) {
+  paintBuddy(g, p, t, emoji);
 }
 
 export function drawLabel(g, p, text) {
-  g.save();
-  g.font = "800 16px Trebuchet MS, sans-serif";
-  g.textAlign = "center";
-  g.lineWidth = 4;
-  g.strokeStyle = "rgba(12,74,110,.35)";
-  g.strokeText(text || p.name, p.x, p.y - p.r - 12);
-  g.fillStyle = p.color;
-  g.fillText(text || p.name, p.x, p.y - p.r - 12);
-  g.restore();
+  paintLabel(g, p, text);
 }
 
 export function run(spec) {
@@ -352,7 +266,7 @@ export function run(spec) {
     alon, dad, sparks,
     w: 0, h: 0, field: { x: 0, y: 0, w: 0, h: 0 },
     t: 0, now: 0, playing: false,
-    beep, chime, starChime, bump, fanfare, pop, whoosh, goalHorn,
+    beep, chime, starChime, bump, fanfare, pop, whoosh, thud, goalHorn,
     clamp, dist, aabb, circleHit,
     data: {},
     freeze: 0, shake: 0, floaters: [],
@@ -477,9 +391,11 @@ export function run(spec) {
       p.y += p.vy * dt;
       p.squish += (1 - p.squish) * 10 * dt;
       p.inv -= dt;
+      if (p._ground && Math.abs(p.vx) > 80 && Math.random() < 0.12) ctx.dust(p.x, p.y + p.r * 0.7, "#fff");
       return inn;
     },
     landOn(p, platforms) {
+      const wasAir = !p._ground;
       p._ground = false;
       p._bounce = false;
       for (const plat of platforms) {
@@ -494,6 +410,22 @@ export function run(spec) {
           p._coyote = 0.22;
           if (plat.bounce) p._bounce = true;
         }
+      }
+      if (p._ground && wasAir) {
+        thud();
+        ctx.dust(p.x, p.y + p.r * 0.8, p.color);
+      }
+    },
+    dust(x, y, color) {
+      for (let i = 0; i < 7; i++) {
+        sparks.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 140,
+          vy: -20 - Math.random() * 50,
+          life: 0.28 + Math.random() * 0.18,
+          color: color || "#fff",
+          r: 2 + Math.random() * 3
+        });
       }
     },
     keepInField(p, bounce) {
@@ -552,7 +484,7 @@ export function run(spec) {
       ctx.paint();
     },
     float(x, y, text, color) {
-      ctx.floaters.push({ x, y, text, color: color || "#fff", life: 0.8, vy: -50 });
+      ctx.floaters.push({ x, y, text, color: color || "#fff", life: 1.05, vy: -64 });
     },
     punch(n) { ctx.shake = Math.max(ctx.shake, n || 0.28); },
     frozen() { return ctx.freeze > 0; },
@@ -622,60 +554,10 @@ export function run(spec) {
       setTimeout(() => { if (ctx.playing) ctx.startRound(ctx.round + 1); }, 1000);
     },
     drawTheme(name) {
-      const th = THEMES[name] || THEMES.meadow;
-      const sky = g.createLinearGradient(0, 0, 0, ctx.h);
-      sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
-      g.fillStyle = sky; g.fillRect(0, 0, ctx.w, ctx.h);
-      if (name === "night" || name === "glow" || name === "spark" || name === "blocks") {
-        g.fillStyle = "rgba(255,255,255,.35)";
-        for (let i = 0; i < 28; i++) {
-          const x = ((i * 97 + ctx.t * 8) % ctx.w);
-          const y = (i * 53 + 20) % (ctx.h * 0.7);
-          g.fillRect(x, y, 2, 2);
-        }
-      } else {
-        g.fillStyle = "rgba(255,255,255,.55)";
-        for (let i = 0; i < 5; i++) {
-          const x = ((ctx.t * (12 + i * 4) + i * 160) % (ctx.w + 80)) - 40;
-          const y = 40 + (i % 3) * 28;
-          g.beginPath();
-          g.ellipse(x, y, 28, 16, 0, 0, Math.PI * 2);
-          g.ellipse(x + 18, y + 4, 22, 12, 0, 0, Math.PI * 2);
-          g.fill();
-        }
-      }
-      g.fillStyle = th.hill2;
-      g.beginPath();
-      g.moveTo(0, ctx.h);
-      for (let x = 0; x <= ctx.w; x += 20) {
-        g.lineTo(x, ctx.h * 0.78 + Math.sin(x * 0.01 + iHash(name)) * 18);
-      }
-      g.lineTo(ctx.w, ctx.h); g.closePath(); g.fill();
-      g.fillStyle = th.hill;
-      g.beginPath();
-      g.moveTo(0, ctx.h);
-      for (let x = 0; x <= ctx.w; x += 18) {
-        g.lineTo(x, ctx.h * 0.86 + Math.sin(x * 0.014 + 2) * 12);
-      }
-      g.lineTo(ctx.w, ctx.h); g.closePath(); g.fill();
-      ctx.fillField(th.field);
-      g.save();
-      g.font = "800 15px Trebuchet MS, sans-serif";
-      g.fillStyle = "rgba(12,74,110,.45)";
-      g.fillText(`Round ${ctx.round} / ${ctx.maxRounds}   Alon ${ctx.roundWins.alon} – ${ctx.roundWins.dad} Dad`,
-        ctx.field.x + 14, ctx.field.y + 20);
-      g.restore();
+      paintWorld(g, ctx, name);
     },
     drawPlats(plats, color) {
-      (plats || []).forEach((p) => {
-        g.fillStyle = p.bounce ? "#f472b6" : p.ice ? "#e0f2fe" : p.hurt ? "#fb923c" : (color || "#86efac");
-        g.beginPath();
-        g.roundRect(p.x, p.y, p.w, p.h, 10);
-        g.fill();
-        g.strokeStyle = "rgba(255,255,255,.35)";
-        g.stroke();
-        if (p.bounce) ctx.icon(p.x + p.w / 2, p.y + p.h / 2, "🍄", "#fb7185", 10);
-      });
+      (plats || []).forEach((p) => paintPlat(g, p, color));
     },
     tickJuice(dt) {
       ctx.freeze = Math.max(0, ctx.freeze - dt);
@@ -687,7 +569,7 @@ export function run(spec) {
     drawJuice() {
       ctx.floaters.forEach((f) => {
         g.globalAlpha = Math.max(0, f.life * 1.4);
-        g.font = "800 22px Trebuchet MS, sans-serif";
+        g.font = "800 26px Trebuchet MS, sans-serif";
         g.textAlign = "center";
         g.fillStyle = f.color;
         g.fillText(f.text, f.x, f.y);
@@ -746,20 +628,13 @@ export function run(spec) {
       g.stroke();
     },
     icon(x, y, emoji, color, r) {
-      const rad = r || 14;
-      g.save();
-      g.fillStyle = color || "#fbbf24";
-      g.beginPath();
-      g.arc(x, y, rad, 0, Math.PI * 2);
-      g.fill();
-      g.strokeStyle = "rgba(255,255,255,.7)";
-      g.lineWidth = 2;
-      g.stroke();
-      g.font = `${rad * 1.6}px serif`;
-      g.textAlign = "center";
-      g.textBaseline = "middle";
-      g.fillText(emoji, x, y + 1);
-      g.restore();
+      paintIcon(g, x, y, emoji, color, r, ctx.t);
+    },
+    prop(kind, x, y, r, extra) {
+      paintProp(g, kind, x, y, r || 14, ctx.t, extra);
+    },
+    head(x, y, who, r) {
+      paintHead(g, x, y, who, r);
     },
     drawSparks(dt) {
       for (let i = sparks.length - 1; i >= 0; i--) {
@@ -783,8 +658,8 @@ export function run(spec) {
       const order = alon.y <= dad.y ? [alon, dad] : [dad, alon];
       order.forEach((p) => {
         if (p.inv > 0 && !p.out && ((ctx.now / 90) | 0) % 2 === 0) return;
-        drawBuddy(g, p, emotes && emotes[p.id]);
-        drawLabel(g, p);
+        paintBuddy(g, p, ctx.t, emotes && emotes[p.id]);
+        paintLabel(g, p);
       });
     },
     end(who, title, text, emoji) {
