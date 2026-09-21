@@ -128,6 +128,12 @@ export const games = {
         };
         road(ALON_X, 0xfb7185);
         road(DAD_X, 0x38bdf8);
+        const grass = new THREE.Mesh(
+          new THREE.BoxGeometry(28, 0.08, 240),
+          new THREE.MeshStandardMaterial({ color: 0x86efac })
+        );
+        grass.position.set(0, -0.38, -90);
+        addMesh(ctx, grass);
         addClouds(ctx, THREE, 10);
         ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
         addMesh(ctx, ctx.data.orbs.alon);
@@ -221,6 +227,14 @@ export const games = {
         addMesh(ctx, ctx.data.orbs.alon);
         addMesh(ctx, ctx.data.orbs.dad);
         addClouds(ctx, THREE, 8);
+        for (let i = 0; i < 6; i++) {
+          const hill = new THREE.Mesh(
+            new THREE.SphereGeometry(2.2, 10, 8),
+            new THREE.MeshStandardMaterial({ color: 0x4ade80 })
+          );
+          hill.position.set(i % 2 ? -9 : 9, -1.2, -8 - i * 12);
+          addMesh(ctx, hill);
+        }
         ctx._worldRing = true;
       }
       (ctx.data.rings || []).forEach((r) => t.scene.remove(r));
@@ -389,6 +403,14 @@ export const games = {
         ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
         addMesh(ctx, ctx.data.orbs.alon);
         addMesh(ctx, ctx.data.orbs.dad);
+        for (let i = 0; i < 18; i++) {
+          const star = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.6 })
+          );
+          star.position.set((i % 2 ? -6 : 6) + (i % 5) * 0.4, 2 + (i % 4), -4 - i * 2.2);
+          addMesh(ctx, star);
+        }
         ctx._worldPads = true;
       }
       (ctx.data.padMeshes || []).forEach((m) => t.scene.remove(m));

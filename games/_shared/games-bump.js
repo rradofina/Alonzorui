@@ -13,12 +13,29 @@ export const games = {
     setupRound(ctx, n) {
       ctx.data.need = 3 + n;
       ctx.data.hits = { alon: 0, dad: 0 };
+      const f = ctx.field;
+      ctx.data.beds = [
+        { x: f.x + f.w * 0.5, y: f.y + f.h * 0.32, r: 26 },
+        { x: f.x + f.w * 0.32, y: f.y + f.h * 0.62, r: 22 },
+        { x: f.x + f.w * 0.68, y: f.y + f.h * 0.62, r: 22 }
+      ];
+      if (n > 1) ctx.data.beds.push({ x: f.x + f.w * 0.5, y: f.y + f.h * 0.78, r: 20 });
       ctx.alon.hearts = ctx.dad.hearts = 3;
       ctx.alon.out = ctx.dad.out = false;
       ctx.place(0.25, 0.75, 0.5);
     },
     update(ctx, dt) {
-      [ctx.alon, ctx.dad].forEach((p) => { if (!p.out) ctx.moveTopDown(p, 250 + ctx.round * 15, dt); });
+      [ctx.alon, ctx.dad].forEach((p) => {
+        if (!p.out) ctx.moveTopDown(p, 250 + ctx.round * 15, dt);
+        (ctx.data.beds || []).forEach((b) => {
+          if (ctx.dist(p.x, p.y, b.x, b.y) < p.r + b.r - 6) {
+            const dx = p.x - b.x, dy = p.y - b.y, m = Math.hypot(dx, dy) || 1;
+            p.x = b.x + (dx / m) * (p.r + b.r);
+            p.y = b.y + (dy / m) * (p.r + b.r);
+            p.vx += (dx / m) * 80; p.vy += (dy / m) * 80;
+          }
+        });
+      });
       if (ctx.circleHit(ctx.alon, ctx.dad, 4) && ctx.alon.inv <= 0 && ctx.dad.inv <= 0) {
         const speedA = Math.hypot(ctx.alon.vx, ctx.alon.vy);
         const speedD = Math.hypot(ctx.dad.vx, ctx.dad.vy);
@@ -33,6 +50,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("pillow");
+        (ctx.data.beds || []).forEach((b) => ctx.prop("pillow", b.x, b.y, b.r * 0.7));
         ctx.drawBuddies({ alon: "🛏️", dad: "🧸" });
         ctx.drawJuice();
       });
@@ -99,7 +117,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("frost");
-        (ctx.data.piles || []).forEach((p) => ctx.icon(p.x, p.y, "⛄", "#fff", 16));
+        (ctx.data.piles || []).forEach((p) => ctx.prop("snowman", p.x, p.y, 16));
         (ctx.data.shots || []).forEach((s) => { ctx.g.fillStyle = "#fff"; ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill(); });
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
@@ -146,9 +164,11 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("sumo");
         const c = ctx.data.c || { x: ctx.w / 2, y: ctx.h / 2, r: 120 };
-        ctx.g.fillStyle = "rgba(255,255,255,.6)";
+        ctx.g.fillStyle = "rgba(255,255,255,.72)";
         ctx.g.beginPath(); ctx.g.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.g.fill();
-        ctx.g.strokeStyle = "#f97316"; ctx.g.lineWidth = 10; ctx.g.stroke();
+        ctx.g.strokeStyle = "#f97316"; ctx.g.lineWidth = 12; ctx.g.stroke();
+        ctx.g.strokeStyle = "#fde047"; ctx.g.lineWidth = 4;
+        ctx.g.beginPath(); ctx.g.arc(c.x, c.y, c.r - 16, 0, Math.PI * 2); ctx.g.stroke();
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -205,8 +225,8 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("coins");
-        (ctx.data.coins || []).forEach((c) => ctx.icon(c.x, c.y, c.star ? "⭐" : "🪙", c.star ? "#fde047" : "#fbbf24", c.star ? 15 : 13));
-        if (ctx.data.ghost) ctx.icon(ctx.data.ghost.x, ctx.data.ghost.y, "👻", "#e2e8f0", 16);
+        (ctx.data.coins || []).forEach((c) => ctx.prop(c.star ? "star" : "coin", c.x, c.y, c.star ? 15 : 13));
+        if (ctx.data.ghost) ctx.prop("ghost", ctx.data.ghost.x, ctx.data.ghost.y, 16);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -262,8 +282,16 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("orchard");
         (ctx.data.fall || []).forEach((it) => {
-          ctx.icon(it.x, it.y, it.kind === "fruit" ? ["🍎", "🍌", "🍇", "🍊"][(it.x | 0) % 4] : "🥦",
-            it.kind === "fruit" ? "#fb7185" : "#4ade80", 14);
+          const fruits = ["#fb7185", "#facc15", "#a78bfa", "#fb923c"];
+          ctx.prop(it.kind === "fruit" ? "fruit" : "veg", it.x, it.y, 14, {
+            color: it.kind === "fruit" ? fruits[(it.x | 0) % 4] : "#4ade80"
+          });
+        });
+        [ctx.alon, ctx.dad].forEach((p) => {
+          ctx.g.fillStyle = "#b45309";
+          ctx.g.beginPath();
+          ctx.g.ellipse(p.x, p.y + 10, 22, 10, 0, 0, Math.PI * 2);
+          ctx.g.fill();
         });
         ctx.drawBuddies({ alon: "🧺", dad: "🧺" });
         ctx.drawJuice();
@@ -361,7 +389,9 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("pets");
-        (ctx.data.pets || []).forEach((pet) => { if (pet.live) ctx.icon(pet.x, pet.y, pet.emoji, "#f9a8d4", 16); });
+        (ctx.data.pets || []).forEach((pet) => {
+          if (pet.live) ctx.prop("pet", pet.x, pet.y, 16, { color: pet.color || "#f9a8d4" });
+        });
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -405,14 +435,14 @@ function spawnBub(ctx, n) {
   });
 }
 function spawnPets(ctx, n) {
-  const em = ["🐶", "🐱", "🐰", "🐹", "🐥", "🦊"];
+  const cols = ["#f9a8d4", "#fdba74", "#86efac", "#93c5fd", "#fde047", "#fbcfe8"];
   ctx.data.pets = [];
   const f = ctx.field;
   for (let i = 0; i < n; i++) {
     ctx.data.pets.push({
       x: f.x + 40 + Math.random() * (f.w - 80),
       y: f.y + 40 + Math.random() * (f.h - 80),
-      emoji: em[i % em.length],
+      color: cols[i % cols.length],
       vx: (Math.random() - 0.5) * 70,
       vy: (Math.random() - 0.5) * 70,
       live: true

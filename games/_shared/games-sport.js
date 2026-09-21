@@ -13,8 +13,8 @@ export const games = {
     title: "Kart Cruise",
     emoji: "🏎️",
     blurb: "Three sunny cups! Steer the oval, grab pillows, first to 2 laps wins the heat.",
-    hintAlon: "Alon: WASD — W gas · S brake",
-    hintDad: "Dad: arrows — ↑ gas · ↓ brake",
+    hintAlon: "Alon: A D lane · W gas",
+    hintDad: "Dad: ← → lane · ↑ gas",
     goal: "BEST OF 3",
     hearts: false,
     rounds: 3,
@@ -27,15 +27,18 @@ export const games = {
       ctx.data.rx = f.w * (0.34 + n * 0.01);
       ctx.data.ry = f.h * 0.3;
       ctx.alon.a = 0.05; ctx.dad.a = 0.5;
+      ctx.alon.lane = 0; ctx.dad.lane = 0;
       ctx.data.laps = { alon: 0, dad: 0 };
       ctx.data.boost = { alon: 0, dad: 0 };
-      ctx.data.item = { a: Math.PI * 0.6, live: true };
+      ctx.data.item = { a: Math.PI * 0.6, lane: 1, live: true };
     },
     update(ctx, dt) {
       [ctx.alon, ctx.dad].forEach((p) => {
         const inn = ctx.input(p.id);
         ctx.data.boost[p.id] = Math.max(0, ctx.data.boost[p.id] - dt);
-        const gas = 1.85 + ctx.round * 0.15 + (inn.up ? 0.7 : 0) - (inn.down ? 0.8 : 0) + (ctx.data.boost[p.id] > 0 ? 0.9 : 0);
+        if (ctx.pressed(p.id, "left")) p.lane = Math.max(-1, (p.lane || 0) - 1);
+        if (ctx.pressed(p.id, "right")) p.lane = Math.min(1, (p.lane || 0) + 1);
+        const gas = 1.85 + ctx.round * 0.15 + (inn.up ? 0.7 : 0) - (inn.down ? 0.8 : 0) + (ctx.data.boost[p.id] > 0 ? 0.9 : 0) + ((p.lane || 0) < 0 ? 0.22 : 0);
         p.a += Math.max(0.6, gas) * dt;
         if (p.a >= Math.PI * 2) {
           p.a -= Math.PI * 2;
@@ -44,11 +47,15 @@ export const games = {
           ctx.starChime();
           if (ctx.data.laps[p.id] >= 2) ctx.winRound(p.id, "Kart parade!");
         }
-        p.x = ctx.data.cx + Math.cos(p.a) * ctx.data.rx;
-        p.y = ctx.data.cy + Math.sin(p.a) * ctx.data.ry;
+        const rr = ctx.data.rx + (p.lane || 0) * 22;
+        const ry = ctx.data.ry + (p.lane || 0) * 14;
+        p.x = ctx.data.cx + Math.cos(p.a) * rr;
+        p.y = ctx.data.cy + Math.sin(p.a) * ry;
         if (ctx.data.item.live) {
-          const ix = ctx.data.cx + Math.cos(ctx.data.item.a) * ctx.data.rx;
-          const iy = ctx.data.cy + Math.sin(ctx.data.item.a) * ctx.data.ry;
+          const ir = ctx.data.rx + (ctx.data.item.lane || 0) * 22;
+          const iyR = ctx.data.ry + (ctx.data.item.lane || 0) * 14;
+          const ix = ctx.data.cx + Math.cos(ctx.data.item.a) * ir;
+          const iy = ctx.data.cy + Math.sin(ctx.data.item.a) * iyR;
           if (ctx.dist(p.x, p.y, ix, iy) < 28) {
             ctx.data.item.live = false;
             ctx.data.boost[p.id] = 1.4;
@@ -56,8 +63,8 @@ export const games = {
           }
         }
       });
-      if (!ctx.data.item.live && Math.random() < 0.004) {
-        ctx.data.item = { a: Math.random() * Math.PI * 2, live: true };
+      if (!ctx.data.item.live && Math.random() < 0.008) {
+        ctx.data.item = { a: Math.random() * Math.PI * 2, lane: ((Math.random() * 3) | 0) - 1, live: true };
       }
       ctx.setGoal(`laps ${Math.max(ctx.data.laps.alon, ctx.data.laps.dad)}/2`);
     },
@@ -67,14 +74,23 @@ export const games = {
         if (ctx.data.cx == null) return;
         const { g } = ctx;
         const { cx, cy, rx, ry } = ctx.data;
+        g.fillStyle = "#4ade80";
+        g.beginPath(); g.ellipse(cx, cy, rx - 28, ry - 22, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#86efac";
+        g.beginPath(); g.ellipse(cx, cy, rx - 48, ry - 36, 0, 0, Math.PI * 2); g.fill();
         g.strokeStyle = "#fff"; g.lineWidth = 36;
         g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.stroke();
         g.strokeStyle = "#f97316"; g.lineWidth = 4; g.setLineDash([12, 10]);
         g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.stroke();
         g.setLineDash([]);
         g.fillStyle = "#fff"; g.fillRect(cx + rx - 8, cy - 16, 16, 32);
+        g.fillStyle = "#facc15";
+        g.fillRect(cx + rx - 18, cy - 28, 8, 12);
+        g.fillRect(cx + rx + 10, cy - 28, 8, 12);
         if (ctx.data.item && ctx.data.item.live) {
-          ctx.icon(cx + Math.cos(ctx.data.item.a) * rx, cy + Math.sin(ctx.data.item.a) * ry, "✨", "#fde047", 12);
+          const ir = rx + (ctx.data.item.lane || 0) * 22;
+          const iyR = ry + (ctx.data.item.lane || 0) * 14;
+          ctx.prop("star", cx + Math.cos(ctx.data.item.a) * ir, cy + Math.sin(ctx.data.item.a) * iyR, 12);
         }
         ctx.drawBuddies({ alon: "🚗", dad: "🚙" });
         ctx.drawJuice();
@@ -86,8 +102,8 @@ export const games = {
     title: "Sled Zoom",
     emoji: "🛷",
     blurb: "Three snow hills. Jump flakes, sip cocoa — first to 8 sips wins the heat.",
-    hintAlon: "Alon: W jump · S duck",
-    hintDad: "Dad: ↑ jump · ↓ duck",
+    hintAlon: "Alon: A D slide · W hop",
+    hintDad: "Dad: ← → slide · ↑ hop",
     goal: "BEST OF 3",
     hearts: false,
     rounds: 3,
@@ -115,6 +131,8 @@ export const games = {
         const base = ctx.field.y + ctx.field.h * 0.62;
         p.want = inn.up ? base - 78 : inn.down ? base + 48 : base;
         p.y += (p.want - p.y) * Math.min(1, 9 * dt);
+        p.x += inn.ax * 260 * dt;
+        p.x = ctx.clamp(p.x, ctx.field.x + 40, ctx.field.x + ctx.field.w - 40);
         ctx.data.items.forEach((it) => {
           if (!it.live) return;
           if (Math.abs(it.x - p.x) < 30 && Math.abs(it.y - p.y) < 32) {
@@ -134,7 +152,7 @@ export const games = {
         ctx.drawTheme("snow");
         ctx.g.fillStyle = "#fff";
         ctx.g.fillRect(ctx.field.x, ctx.field.y + ctx.field.h * 0.78, ctx.field.w, ctx.field.h * 0.22);
-        (ctx.data.items || []).forEach((it) => ctx.icon(it.x, it.y, it.kind === "cocoa" ? "🍫" : "❄️", it.kind === "cocoa" ? "#b45309" : "#e0f2fe", 13));
+        (ctx.data.items || []).forEach((it) => ctx.prop(it.kind === "cocoa" ? "cocoa" : "flake", it.x, it.y, 13));
         ctx.drawBuddies({ alon: "🛷", dad: "🎿" });
         ctx.drawJuice();
       });
@@ -200,7 +218,7 @@ export const games = {
         g.strokeRect(f.x, gy0, 16, goalH);
         g.strokeRect(f.x + f.w - 16, gy0, 16, goalH);
         const b = ctx.data.ball;
-        if (b) ctx.icon(b.x, b.y, "⚽", "#f8fafc", 14);
+        if (b) ctx.prop("soccer", b.x, b.y, 14);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -254,7 +272,9 @@ export const games = {
         ctx.drawTheme("sand");
         ctx.g.fillStyle = "#fff";
         ctx.g.fillRect(ctx.field.x + ctx.field.w / 2 - 5, ctx.field.y + ctx.field.h * 0.32, 10, ctx.field.h * 0.68);
-        if (ctx.data.ball) ctx.icon(ctx.data.ball.x, ctx.data.ball.y, "🏐", "#fff", 14);
+        ctx.g.fillStyle = "#f97316";
+        ctx.g.fillRect(ctx.field.x + ctx.field.w / 2 - 14, ctx.field.y + ctx.field.h * 0.3, 28, 10);
+        if (ctx.data.ball) ctx.prop("volley", ctx.data.ball.x, ctx.data.ball.y, 14);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -311,9 +331,10 @@ export const games = {
         [ctx.alon, ctx.dad].forEach((p) => {
           ctx.g.fillStyle = p.color;
           ctx.g.beginPath(); ctx.g.roundRect(p.x - 9, p.y - 46, 18, 92, 8); ctx.g.fill();
+          ctx.head(p.x + (p.id === "alon" ? 22 : -22), p.y, p.id, 16);
         });
         const b = ctx.data.ball;
-        if (b) { ctx.g.fillStyle = "#fff"; ctx.g.beginPath(); ctx.g.arc(b.x, b.y, 11, 0, Math.PI * 2); ctx.g.fill(); }
+        if (b) ctx.prop("ball", b.x, b.y, 11);
         ctx.drawJuice();
       });
     }
@@ -383,8 +404,8 @@ export const games = {
         const gh = f.h * 0.3, gy = f.y + (f.h - gh) / 2;
         g.fillStyle = "#fb7185"; g.fillRect(f.x, gy, 12, gh);
         g.fillStyle = "#0284c7"; g.fillRect(f.x + f.w - 12, gy, 12, gh);
-        (ctx.data.bumps || []).forEach((u) => { g.fillStyle = "#fbbf24"; g.beginPath(); g.arc(u.x, u.y, u.r, 0, Math.PI * 2); g.fill(); });
-        if (ctx.data.ball) { g.fillStyle = "#0c4a6e"; g.beginPath(); g.arc(ctx.data.ball.x, ctx.data.ball.y, ctx.data.ball.r, 0, Math.PI * 2); g.fill(); }
+        (ctx.data.bumps || []).forEach((u) => { g.fillStyle = "#fbbf24"; g.beginPath(); g.arc(u.x, u.y, u.r, 0, Math.PI * 2); g.fill(); g.fillStyle = "#fff"; g.beginPath(); g.arc(u.x - 4, u.y - 4, 5, 0, Math.PI * 2); g.fill(); });
+        if (ctx.data.ball) ctx.prop("puck", ctx.data.ball.x, ctx.data.ball.y, ctx.data.ball.r);
         ctx.drawBuddies({ alon: "🔴", dad: "🔵" });
         ctx.drawJuice();
       });
@@ -421,10 +442,20 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("gold");
         const { g, field: f } = ctx;
-        g.strokeStyle = "#fff"; g.lineWidth = 12;
-        g.beginPath(); g.moveTo(f.x + 40, f.y + f.h / 2); g.lineTo(f.x + f.w - 40, f.y + f.h / 2); g.stroke();
+        const midY = f.y + f.h / 2;
+        g.strokeStyle = "#fde68a"; g.lineWidth = 14;
+        g.beginPath(); g.moveTo(f.x + 56, midY); g.lineTo(f.x + f.w - 56, midY); g.stroke();
+        g.strokeStyle = "#f59e0b"; g.lineWidth = 4; g.setLineDash([10, 8]);
+        g.beginPath(); g.moveTo(f.x + 56, midY); g.lineTo(f.x + f.w - 56, midY); g.stroke();
+        g.setLineDash([]);
+        const pullA = (ctx.input("alon").left || ctx.input("alon").ax < -0.2) ? 1 : 0.25;
+        const pullD = (ctx.input("dad").right || ctx.input("dad").ax > 0.2) ? 1 : 0.25;
+        g.fillStyle = "rgba(251,113,133,.35)"; g.fillRect(f.x + 20, midY + 36, 90, 12);
+        g.fillStyle = "#fb7185"; g.fillRect(f.x + 20, midY + 36, 90 * pullA, 12);
+        g.fillStyle = "rgba(56,189,248,.35)"; g.fillRect(f.x + f.w - 110, midY + 36, 90, 12);
+        g.fillStyle = "#38bdf8"; g.fillRect(f.x + f.w - 20 - 90 * pullD, midY + 36, 90 * pullD, 12);
         const x = f.x + f.w * (ctx.data.x || 0.5);
-        ctx.icon(x, f.y + f.h / 2, "⭐", "#fde047", 22);
+        ctx.prop("star", x, midY, 22);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -482,7 +513,14 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("potato");
-        if (ctx.data.spud) ctx.icon(ctx.data.spud.x, ctx.data.spud.y, "🥔", "#fdba74", 16);
+        if (ctx.data.spud) {
+          const s = ctx.data.spud;
+          const frac = ctx.data.max ? ctx.data.timer / ctx.data.max : 1;
+          ctx.g.strokeStyle = frac < 0.3 ? "#fb7185" : "#fde047";
+          ctx.g.lineWidth = 5;
+          ctx.g.beginPath(); ctx.g.arc(s.x, s.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, frac)); ctx.g.stroke();
+          ctx.prop("potato", s.x, s.y, 16);
+        }
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });

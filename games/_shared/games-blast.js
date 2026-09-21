@@ -92,7 +92,7 @@ export const games = {
         ctx.drawTheme("paint");
         (ctx.data.blobs || []).forEach((b) => {
           if (!b.live) return;
-          ctx.icon(b.x, b.y, b.kind === "boss" ? "👾" : "🟣", b.kind === "boss" ? "#a78bfa" : "#c4b5fd", b.r);
+          ctx.prop("blob", b.x, b.y, b.r, { color: b.kind === "boss" ? "#a78bfa" : "#c4b5fd" });
         });
         (ctx.data.shots || []).forEach((s) => {
           ctx.g.fillStyle = s.who === "alon" ? "rgba(251,113,133,.9)" : "rgba(56,189,248,.9)";
@@ -168,7 +168,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("night");
-        (ctx.data.rocks || []).forEach((r) => ctx.icon(r.x, r.y, r.gold ? "⭐" : "🪨", r.gold ? "#fde047" : "#94a3b8", r.r * 0.7));
+        (ctx.data.rocks || []).forEach((r) => ctx.prop(r.gold ? "star" : "rock", r.x, r.y, r.r * 0.7, { gold: r.gold }));
         (ctx.data.shots || []).forEach((s) => {
           ctx.g.fillStyle = "#fde047";
           ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();
@@ -246,7 +246,17 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("paint");
-        (ctx.data.cover || []).forEach((c) => ctx.icon(c.x, c.y, "🛏️", "#fbcfe8", c.r * 0.7));
+        const { g, field: f } = ctx;
+        const blobs = ["#fb7185", "#38bdf8", "#facc15", "#a78bfa"];
+        for (let i = 0; i < 10; i++) {
+          g.globalAlpha = 0.22;
+          g.fillStyle = blobs[i % 4];
+          g.beginPath();
+          g.arc(f.x + 30 + (i * 97) % (f.w - 60), f.y + 24 + (i * 53) % (f.h - 50), 16 + (i % 3) * 6, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.globalAlpha = 1;
+        (ctx.data.cover || []).forEach((c) => ctx.prop("pillow", c.x, c.y, c.r * 0.7));
         (ctx.data.shots || []).forEach((s) => {
           ctx.g.fillStyle = s.who === "alon" ? "#fb7185" : "#38bdf8";
           ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();
@@ -323,14 +333,18 @@ export const games = {
         ctx.drawTheme("party");
         const b = ctx.data.boss || { x: ctx.w / 2, y: 160, r: 50 };
         const colors = ["#fb7185", "#fbbf24", "#a78bfa"];
-        ctx.icon(b.x, b.y, "🎈", colors[ctx.round - 1] || "#fb7185", b.r * 0.55);
+        ctx.prop("balloon", b.x, b.y, b.r * 0.55, { color: colors[ctx.round - 1] || "#fb7185" });
+        ctx.g.fillStyle = "#fff";
+        ctx.g.beginPath(); ctx.g.arc(b.x - 10, b.y - 6, 6, 0, Math.PI * 2); ctx.g.arc(b.x + 10, b.y - 6, 6, 0, Math.PI * 2); ctx.g.fill();
+        ctx.g.fillStyle = "#1e293b";
+        ctx.g.beginPath(); ctx.g.arc(b.x - 8, b.y - 5, 2.5, 0, Math.PI * 2); ctx.g.arc(b.x + 12, b.y - 5, 2.5, 0, Math.PI * 2); ctx.g.fill();
         ctx.g.fillStyle = "rgba(12,74,110,.25)";
         ctx.g.fillRect(ctx.field.x + 40, ctx.field.y + 10, ctx.field.w - 80, 10);
         ctx.g.fillStyle = "#fb7185";
         const w = (ctx.field.w - 80) * (ctx.data.hp / (ctx.data.max || 1));
         ctx.g.fillRect(ctx.field.x + 40, ctx.field.y + 10, Math.max(0, w), 10);
         (ctx.data.shots || []).forEach((s) => { ctx.g.fillStyle = "#fde047"; ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill(); });
-        (ctx.data.drops || []).forEach((d) => ctx.icon(d.x, d.y, "💧", "#7dd3fc", 8));
+        (ctx.data.drops || []).forEach((d) => ctx.prop("pearl", d.x, d.y, 8));
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });

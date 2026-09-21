@@ -53,7 +53,7 @@ export const games = {
           ctx.g.fillStyle = "rgba(74,222,128,.5)";
           ctx.g.beginPath(); ctx.g.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.g.fill();
         });
-        (ctx.data.crates || []).forEach((c) => ctx.icon(c.x, c.y, "📦", "#fbbf24", 18));
+        (ctx.data.crates || []).forEach((c) => ctx.prop("crate", c.x, c.y, 18));
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -122,8 +122,8 @@ export const games = {
           ctx.g.fillStyle = "#c4b5fd";
           ctx.g.beginPath(); ctx.g.roundRect(w.x, w.y, w.w, w.h, 8); ctx.g.fill();
         });
-        (ctx.data.keys || []).forEach((k) => { if (k.live) ctx.icon(k.x, k.y, "🔑", "#fde047", 12); });
-        if (ctx.data.star) ctx.icon(ctx.data.star.x, ctx.data.star.y, "⭐", ctx.data.unlocked ? "#fde047" : "#94a3b8", 14);
+        (ctx.data.keys || []).forEach((k) => { if (k.live) ctx.prop("key", k.x, k.y, 12); });
+        if (ctx.data.star) ctx.prop("star", ctx.data.star.x, ctx.data.star.y, 14);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
       });
@@ -170,7 +170,13 @@ export const games = {
         colorPads(ctx).forEach((p, i) => {
           ctx.g.fillStyle = p.color;
           ctx.g.beginPath(); ctx.g.arc(p.x, p.y, 38, 0, Math.PI * 2); ctx.g.fill();
-          if (ctx.data && ctx.data.needIdx === i) { ctx.g.strokeStyle = "#fff"; ctx.g.lineWidth = 7; ctx.g.stroke(); }
+          ctx.g.fillStyle = "rgba(255,255,255,.35)";
+          ctx.g.beginPath(); ctx.g.arc(p.x - 8, p.y - 8, 10, 0, Math.PI * 2); ctx.g.fill();
+          ctx.g.font = "800 13px Trebuchet MS, sans-serif";
+          ctx.g.textAlign = "center"; ctx.g.textBaseline = "middle";
+          ctx.g.fillStyle = "#fff";
+          ctx.g.fillText(NAMES[i], p.x, p.y + 2);
+          if (ctx.data && ctx.data.needIdx === i) { ctx.g.strokeStyle = "#fff"; ctx.g.lineWidth = 7; ctx.g.beginPath(); ctx.g.arc(p.x, p.y, 38, 0, Math.PI * 2); ctx.g.stroke(); }
         });
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
@@ -246,11 +252,14 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("cards");
         (ctx.data.cards || []).forEach((c) => {
-          ctx.g.fillStyle = c.done ? "#86efac" : c.open ? "#fff" : "#a78bfa";
-          ctx.g.beginPath(); ctx.g.roundRect(c.x - 30, c.y - 30, 60, 60, 12); ctx.g.fill();
-          ctx.g.font = "28px serif"; ctx.g.textAlign = "center"; ctx.g.textBaseline = "middle";
-          ctx.g.fillStyle = "#0c4a6e";
-          ctx.g.fillText(c.open || c.done ? c.face : "?", c.x, c.y);
+          ctx.g.fillStyle = c.done ? "#86efac" : c.open ? "#fff" : "#7c3aed";
+          ctx.g.beginPath(); ctx.g.roundRect(c.x - 32, c.y - 36, 64, 72, 12); ctx.g.fill();
+          ctx.g.strokeStyle = "rgba(255,255,255,.45)"; ctx.g.lineWidth = 3;
+          ctx.g.stroke();
+          ctx.g.font = c.open || c.done ? "30px serif" : "800 28px Trebuchet MS, sans-serif";
+          ctx.g.textAlign = "center"; ctx.g.textBaseline = "middle";
+          ctx.g.fillStyle = c.open || c.done ? "#0c4a6e" : "#fde047";
+          ctx.g.fillText(c.open || c.done ? c.face : "★", c.x, c.y);
         });
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
         ctx.drawJuice();
@@ -322,6 +331,8 @@ export const games = {
           (ctx.data.blocks[id] || []).forEach((_, i) => {
             g.fillStyle = p.color;
             g.beginPath(); g.roundRect(p.x - 24, f.y + f.h - 52 - i * 22, 48, 20, 6); g.fill();
+            g.fillStyle = "rgba(255,255,255,.28)";
+            g.fillRect(p.x - 18, f.y + f.h - 48 - i * 22, 36, 5);
           });
           const fl = ctx.data.fall && ctx.data.fall[id];
           if (fl) { g.fillStyle = p.color; g.beginPath(); g.roundRect(fl.x - 20, fl.y, 40, 18, 6); g.fill(); }

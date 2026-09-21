@@ -41,8 +41,8 @@ function drawScrollWorld(ctx, theme, extras) {
     ctx.g.clip();
     ctx.g.translate(-(ctx.data.camX || 0), 0);
     ctx.drawPlats(ctx.data.plats, extras.platColor);
-    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.icon(c.x, c.y, extras.coin || "🪙", "#fbbf24", 13); });
-    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.icon(h.x, h.y, extras.haz || "🌵", "#86efac", 14); });
+    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop(extras.coin || "coin", c.x, c.y, 13); });
+    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.prop(extras.haz || "veg", h.x, h.y, 14); });
     if (ctx.data.flag) {
       const fl = ctx.data.flag;
       ctx.g.fillStyle = "#92400e";
@@ -183,8 +183,9 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("candy");
         ctx.drawPlats(ctx.data.plats);
-        (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.icon(c.x, c.y, "🪙", "#fbbf24", 13); });
-        (ctx.data.haz || []).forEach((h) => ctx.icon(h.x, h.y, "🌸", "#f9a8d4", 12));
+        (ctx.data.plats || []).forEach((pl) => { if (pl.bounce) ctx.prop("mush", pl.x + pl.w / 2, pl.y + 4, 12); });
+        (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop("coin", c.x, c.y, 13); });
+        (ctx.data.haz || []).forEach((h) => ctx.prop("fruit", h.x, h.y, 12, { color: "#f9a8d4" }); });
         ctx.drawBuddies({ alon: "🐰", dad: "🐻" });
         ctx.drawJuice();
       });
@@ -251,7 +252,7 @@ export const games = {
         ctx.g.fillStyle = "#0ea5e9";
         ctx.g.fillRect(ctx.field.x, ctx.field.y + ctx.field.h - 16, ctx.field.w, 16);
         ctx.drawPlats(ctx.data.plats, "#bae6fd");
-        (ctx.data.stars || []).forEach((s) => { if (s.live) ctx.icon(s.x, s.y, "⭐", "#fde047", 14); });
+        (ctx.data.stars || []).forEach((s) => { if (s.live) ctx.prop("star", s.x, s.y, 14); });
         ctx.drawBuddies({ alon: "🐧", dad: "🦭" });
         ctx.drawJuice();
       });
@@ -377,8 +378,8 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("sea");
-        (ctx.data.pearls || []).forEach((c) => { if (c.live) ctx.icon(c.x, c.y + Math.sin(c.wob * 3) * 6, "•", "#f8fafc", 9); });
-        (ctx.data.jellies || []).forEach((j) => ctx.icon(j.x, j.y, "🪼", "#c4b5fd", 16));
+        (ctx.data.pearls || []).forEach((c) => { if (c.live) ctx.prop("pearl", c.x, c.y + Math.sin(c.wob * 3) * 6, 9); });
+        (ctx.data.jellies || []).forEach((j) => ctx.prop("jelly", j.x, j.y, 16); });
         ctx.drawBuddies({ alon: "🐠", dad: "🐡" });
         ctx.drawJuice();
       });
@@ -389,8 +390,8 @@ export const games = {
     title: "Critter Ride",
     emoji: "🦕",
     blurb: "Ride bean beasts down three trails. Jump pits, grab snacks, first finish wins the heat.",
-    hintAlon: "Alon: W jump · S duck",
-    hintDad: "Dad: ↑ jump · ↓ duck",
+    hintAlon: "Alon: A D lane · W jump",
+    hintDad: "Dad: ← → lane · ↑ jump",
     goal: "BEST OF 3",
     hearts: false,
     rounds: 3,
@@ -425,6 +426,8 @@ export const games = {
         }
         if (!inn.up) p._jumpLock = false;
         p.y += p.vy * dt;
+        p.x += inn.ax * 180 * dt;
+        p.x = ctx.clamp(p.x, ctx.field.x + 50, ctx.field.x + ctx.field.w - 50);
         p.squish += (1 - (inn.down ? 0.72 : p.squish)) * 10 * dt;
         const worldX = ctx.data.dist[p.id] + 80;
         const inPit = ctx.data.pits.some((pit) => worldX > pit && worldX < pit + 64);
@@ -456,13 +459,19 @@ export const games = {
           const x = f.x + 40 + (pit - sc);
           if (x < f.x - 80 || x > f.x + f.w + 80) return;
           g.fillStyle = "#0c4a6e"; g.fillRect(x, f.y + f.h - 36, 62, 36);
+          g.fillStyle = "rgba(15,23,42,.35)";
+          g.fillRect(x + 8, f.y + f.h - 52, 46, 16);
         });
         (ctx.data.snacks || []).forEach((sx) => {
           const x = f.x + 40 + (sx - sc);
-          if (x > f.x && x < f.x + f.w) ctx.icon(x, f.y + f.h - 70, "🍎", "#fb7185", 12);
+          if (x > f.x && x < f.x + f.w) ctx.prop("apple", x, f.y + f.h - 70, 12);
         });
         const fx = f.x + 40 + ((ctx.data.finish || 0) - sc);
-        if (fx > f.x && fx < f.x + f.w) ctx.icon(fx, f.y + f.h - 62, "🏁", "#fbbf24", 16);
+        if (fx > f.x && fx < f.x + f.w) {
+          g.fillStyle = "#92400e"; g.fillRect(fx - 2, f.y + f.h - 86, 5, 50);
+          g.fillStyle = "#fbbf24";
+          g.beginPath(); g.moveTo(fx + 3, f.y + f.h - 86); g.lineTo(fx + 28, f.y + f.h - 74); g.lineTo(fx + 3, f.y + f.h - 62); g.fill();
+        }
         ctx.drawBuddies({ alon: "🦕", dad: "🐢" });
         ctx.drawJuice();
       });

@@ -1,4 +1,4 @@
-import { paintWorld, paintBuddy, paintPlat, paintIcon, paintLabel } from "./art.js";
+import { paintWorld, paintBuddy, paintPlat, paintIcon, paintLabel, paintProp, paintHead } from "./art.js";
 
 export const ALON = "alon";
 export const DAD = "dad";
@@ -484,7 +484,7 @@ export function run(spec) {
       ctx.paint();
     },
     float(x, y, text, color) {
-      ctx.floaters.push({ x, y, text, color: color || "#fff", life: 0.8, vy: -50 });
+      ctx.floaters.push({ x, y, text, color: color || "#fff", life: 1.05, vy: -64 });
     },
     punch(n) { ctx.shake = Math.max(ctx.shake, n || 0.28); },
     frozen() { return ctx.freeze > 0; },
@@ -569,7 +569,7 @@ export function run(spec) {
     drawJuice() {
       ctx.floaters.forEach((f) => {
         g.globalAlpha = Math.max(0, f.life * 1.4);
-        g.font = "800 22px Trebuchet MS, sans-serif";
+        g.font = "800 26px Trebuchet MS, sans-serif";
         g.textAlign = "center";
         g.fillStyle = f.color;
         g.fillText(f.text, f.x, f.y);
@@ -629,6 +629,12 @@ export function run(spec) {
     },
     icon(x, y, emoji, color, r) {
       paintIcon(g, x, y, emoji, color, r, ctx.t);
+    },
+    prop(kind, x, y, r, extra) {
+      paintProp(g, kind, x, y, r || 14, ctx.t, extra);
+    },
+    head(x, y, who, r) {
+      paintHead(g, x, y, who, r);
     },
     drawSparks(dt) {
       for (let i = sparks.length - 1; i >= 0; i--) {
