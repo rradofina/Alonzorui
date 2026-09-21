@@ -220,7 +220,7 @@
   <div id="flash"></div>
   <div id="hud" class="off">
     <div class="pill you" id="youPill">
-      <div class="who">YOU</div>
+      <div class="who">ALON</div>
       <div class="hearts" id="youHearts">❤️❤️❤️</div>
       <div class="pts" id="youScore">0</div>
     </div>
@@ -235,13 +235,13 @@
     </div>
   </div>
   <div class="hints off" id="hints">
-    <div class="you">You: A D lanes · W jump · S duck</div>
+    <div class="you">Alon: A D lanes · W jump · S duck</div>
     <div class="dad">Dad: ← → lanes · ↑ jump · ↓ duck</div>
   </div>
   <div id="pads" class="pads off">
     <div class="pad you" id="padYou">
-      <div class="pad-tag">YOU</div>
-      <div class="dpad" aria-label="You fly">
+      <div class="pad-tag">ALON</div>
+      <div class="dpad" aria-label="Alon fly">
         <button type="button" class="dir up" data-dir="up" tabindex="-1">▲</button>
         <button type="button" class="dir left" data-dir="left" tabindex="-1">◀</button>
         <button type="button" class="dir right" data-dir="right" tabindex="-1">▶</button>
@@ -266,7 +266,7 @@
     <p class="brand">Alonzo<span class="r">R</span>ui</p>
     <p>Auto-fly the sky road. Swap lanes, jump and duck. Grab stars — 3 hearts each!</p>
     <div class="pair">
-      <span class="chip you"><span class="for-keys">You: WASD</span><span class="for-touch">You: left pad</span></span>
+      <span class="chip you"><span class="for-keys">Alon: WASD</span><span class="for-touch">Alon: left pad</span></span>
       <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
     </div>
     <button class="play" id="go">Play</button>
@@ -279,7 +279,7 @@
     <h1 id="winTitle">Sky heroes!</h1>
     <p id="winText">What a sunny race.</p>
     <div class="scores">
-      <div class="box you">You<div class="n" id="winYou">0</div></div>
+      <div class="box you">Alon<div class="n" id="winYou">0</div></div>
       <div class="box dad">Dad<div class="n" id="winDad">0</div></div>
     </div>
     <button class="play" id="again">Play again</button>
@@ -297,7 +297,7 @@
 
     const LANE_W = 1.85;
     // Camera sits at +Z looking toward -Z, so +X is screen-right.
-    // You (left pad / WASD) sits on -X; Dad (right pad / arrows) on +X.
+    // Alon (left pad / WASD) sits on -X; Dad (right pad / arrows) on +X.
     const YOU_CENTER = -3.7;
     const DAD_CENTER = 3.7;
     const SEG_LEN = 18;
@@ -857,7 +857,7 @@
 
     const youBird = makeBird(
       { body: 0xfb7185, belly: 0xffedd5, wing: 0xfbbf24, scarf: 0xf472b6 },
-      "YOU", "#fb7185"
+      "ALON", "#fb7185"
     );
     const dadBird = makeBird(
       { body: 0x38bdf8, belly: 0xe0f2fe, wing: 0x0284c7, scarf: 0x7dd3fc },
@@ -1233,7 +1233,7 @@
       document.getElementById("winYou").textContent = String(ys);
       document.getElementById("winDad").textContent = String(ds);
       if (winner === "you") {
-        title.textContent = "You win!";
+        title.textContent = "Alon wins!";
         text.textContent = "AlonzoRui zoomed the sky road!";
         emoji.textContent = "🐦";
       } else if (winner === "dad") {
