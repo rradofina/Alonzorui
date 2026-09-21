@@ -1,201 +1,226 @@
-function spawnBlob(ctx, fromRight) {
+function spawnEnemy(ctx, kind, extra) {
   const f = ctx.field;
-  return {
-    x: fromRight ? f.x + f.w + 20 : f.x + 40 + Math.random() * (f.w - 80),
-    y: f.y + 40 + Math.random() * (f.h - 80),
-    r: 18 + Math.random() * 8,
-    vx: fromRight ? -(80 + Math.random() * 70) : (Math.random() - 0.5) * 40,
-    vy: (Math.random() - 0.5) * 30,
+  return Object.assign({
+    x: extra && extra.x != null ? extra.x : f.x + f.w + 20,
+    y: extra && extra.y != null ? extra.y : f.y + 40 + Math.random() * (f.h - 80),
+    r: 16 + Math.random() * 8,
+    vx: extra && extra.vx != null ? extra.vx : -(90 + Math.random() * 70),
+    vy: extra && extra.vy != null ? extra.vy : (Math.random() - 0.5) * 40,
+    hp: extra && extra.hp || 1,
     live: true,
-    emoji: ["👾", "🟣", "🟢", "🟡"][(Math.random() * 4) | 0]
-  };
+    kind: kind || "blob"
+  }, extra || {});
 }
 
 export const games = {
   "bubble-blaster": {
     title: "Bubble Blaster",
     emoji: "🫧",
-    blurb: "Side-by-side bubble poppers. Blast 10 silly blobs with soft bubbles!",
-    hintAlon: "Alon: WASD move · hold W to puff",
-    hintDad: "Dad: arrows move · hold ↑ to puff",
-    goal: "10 POPS",
+    blurb: "Three blob waves! Puff bubbles, dodge bops, pop the big boss each round.",
+    hintAlon: "Alon: WASD move · hold W puff",
+    hintDad: "Dad: arrows move · hold ↑ puff",
+    goal: "BEST OF 3",
     hearts: false,
-    setup(ctx) {
+    lives: 3,
+    rounds: 3,
+    roundNames: ["Puddle", "Fizz", "Storm"],
+    setup(ctx) { ctx.resetMatch(); },
+    setupRound(ctx, n) {
       ctx.data.shots = [];
       ctx.data.blobs = [];
       ctx.data.cool = { alon: 0, dad: 0 };
-      for (let i = 0; i < 6; i++) ctx.data.blobs.push(spawnBlob(ctx, true));
-      const f = ctx.field;
-      ctx.alon.x = f.x + 70;
-      ctx.dad.x = f.x + 120;
-      ctx.alon.y = ctx.dad.y = f.y + f.h * 0.55;
+      ctx.data.spawned = 0;
+      ctx.data.need = 8 + n * 3;
+      ctx.data.pops = { alon: 0, dad: 0 };
+      ctx.data.boss = null;
+      ctx.data.rate = 0.9 - n * 0.12;
+      ctx.alon.hearts = ctx.dad.hearts = 3;
+      ctx.alon.out = ctx.dad.out = false;
+      ctx.place(0.14, 0.22, 0.55);
     },
     update(ctx, dt) {
+      const f = ctx.field;
       [ctx.alon, ctx.dad].forEach((p) => {
-        ctx.moveTopDown(p, 220, dt);
+        if (p.out) return;
+        ctx.moveTopDown(p, 230, dt);
         ctx.data.cool[p.id] -= dt;
-        const inn = ctx.input(p.id);
-        if (inn.up && ctx.data.cool[p.id] <= 0) {
-          ctx.data.cool[p.id] = 0.22;
-          ctx.data.shots.push({
-            x: p.x + 16, y: p.y, vx: 380, r: 10, who: p.id, live: true
-          });
-          ctx.beep(880, 0.05, "sine", 0.05);
+        if (ctx.input(p.id).up && ctx.data.cool[p.id] <= 0) {
+          ctx.data.cool[p.id] = 0.2;
+          ctx.data.shots.push({ x: p.x + 18, y: p.y, vx: 400, r: 10, who: p.id, live: true });
+          ctx.beep(880, 0.04, "sine", 0.05);
         }
       });
-      ctx.data.shots.forEach((s) => {
-        s.x += s.vx * dt;
-        if (s.x > ctx.field.x + ctx.field.w) s.live = false;
-      });
-      if (ctx.data.blobs.filter((b) => b.live).length < 6) ctx.data.blobs.push(spawnBlob(ctx, true));
+      ctx.data.rate -= dt;
+      if (ctx.data.spawned < ctx.data.need && ctx.data.rate <= 0) {
+        ctx.data.blobs.push(spawnEnemy(ctx, "blob"));
+        ctx.data.spawned += 1;
+        ctx.data.rate = 0.55;
+      }
+      if (ctx.data.spawned >= ctx.data.need && !ctx.data.boss && ctx.data.blobs.every((b) => !b.live)) {
+        ctx.data.boss = spawnEnemy(ctx, "boss", { x: f.x + f.w - 80, y: f.y + f.h / 2, r: 36, vx: -40, hp: 6 + ctx.round, kind: "boss" });
+        ctx.banner("Big blob!", 700);
+        ctx.data.blobs.push(ctx.data.boss);
+      }
+      ctx.data.shots.forEach((s) => { s.x += s.vx * dt; if (s.x > f.x + f.w) s.live = false; });
       ctx.data.blobs.forEach((b) => {
         if (!b.live) return;
         b.x += b.vx * dt;
-        b.y += Math.sin(ctx.t * 3 + b.x) * 20 * dt;
-        if (b.x < ctx.field.x - 20) b.live = false;
+        b.y += Math.sin(ctx.t * 3 + b.x) * 24 * dt;
+        if (b.x < f.x - 30) b.live = false;
+        [ctx.alon, ctx.dad].forEach((p) => {
+          if (!p.out && ctx.dist(p.x, p.y, b.x, b.y) < p.r + b.r - 4) ctx.hurt(p);
+        });
         ctx.data.shots.forEach((s) => {
           if (s.live && b.live && ctx.dist(s.x, s.y, b.x, b.y) < b.r + s.r) {
-            b.live = false; s.live = false;
+            s.live = false; b.hp -= 1;
             const p = s.who === "alon" ? ctx.alon : ctx.dad;
-            ctx.addScore(p, 1);
-            ctx.chime();
-            ctx.burst(b.x, b.y, p.color, 16);
+            ctx.burst(b.x, b.y, p.color, 10);
+            if (b.hp <= 0) {
+              b.live = false; ctx.data.pops[p.id] += b.kind === "boss" ? 3 : 1;
+              ctx.addScore(p, b.kind === "boss" ? 3 : 1, b.kind === "boss" ? "BOSS" : "+pop");
+              ctx.chime();
+              if (b.kind === "boss") ctx.winRound(p.id, "Blob popper!");
+            }
           }
         });
       });
       ctx.data.shots = ctx.data.shots.filter((s) => s.live);
-      ctx.data.blobs = ctx.data.blobs.filter((b) => b.live);
-      ctx.maybeFirstTo(10);
+      ctx.setGoal(`pops ${ctx.data.pops.alon + ctx.data.pops.dad}`);
     },
     draw(ctx) {
-      const { g, w, h } = ctx;
-      const bg = g.createLinearGradient(0, 0, w, h);
-      bg.addColorStop(0, "#e0f2fe"); bg.addColorStop(1, "#c4b5fd");
-      g.fillStyle = bg; g.fillRect(0, 0, w, h);
-      ctx.fillField("rgba(255,255,255,.2)");
-      (ctx.data.blobs || []).forEach((b) => {
-        g.font = `${b.r * 2}px serif`;
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillText(b.emoji, b.x, b.y);
+      ctx.withShake(() => {
+        ctx.drawTheme("paint");
+        (ctx.data.blobs || []).forEach((b) => {
+          if (!b.live) return;
+          ctx.icon(b.x, b.y, b.kind === "boss" ? "👾" : "🟣", b.kind === "boss" ? "#a78bfa" : "#c4b5fd", b.r);
+        });
+        (ctx.data.shots || []).forEach((s) => {
+          ctx.g.fillStyle = s.who === "alon" ? "rgba(251,113,133,.9)" : "rgba(56,189,248,.9)";
+          ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();
+        });
+        ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+        ctx.drawJuice();
       });
-      (ctx.data.shots || []).forEach((s) => {
-        g.fillStyle = s.who === "alon" ? "rgba(251,113,133,.85)" : "rgba(56,189,248,.85)";
-        g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
-      });
-      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
-      ctx.drawSparks(0.016);
     }
   },
 
   "star-shower": {
     title: "Star Shower",
     emoji: "🌟",
-    blurb: "Fly along the bottom. Beam stars up and pop 12 sky rocks.",
+    blurb: "Three night waves. Beam the sky rocks — first to the star goal wins the heat.",
     hintAlon: "Alon: A D move · W beam",
     hintDad: "Dad: ← → move · ↑ beam",
-    goal: "12 STARS",
+    goal: "BEST OF 3",
     hearts: false,
-    setup(ctx) {
+    rounds: 3,
+    roundNames: ["Dusk", "Night", "Meteor"],
+    setup(ctx) { ctx.resetMatch(); },
+    setupRound(ctx, n) {
       const f = ctx.field;
-      ctx.data.shots = [];
-      ctx.data.rocks = [];
+      ctx.data.shots = []; ctx.data.rocks = [];
       ctx.data.cool = { alon: 0, dad: 0 };
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 36;
-      ctx.alon.x = f.x + f.w * 0.3;
-      ctx.dad.x = f.x + f.w * 0.7;
+      ctx.data.need = 8 + n * 3;
+      ctx.data.got = { alon: 0, dad: 0 };
+      ctx.data.left = 14 + n * 4;
+      ctx.alon.y = ctx.dad.y = f.y + f.h - 38;
+      ctx.alon.x = f.x + f.w * 0.3; ctx.dad.x = f.x + f.w * 0.7;
     },
     update(ctx, dt) {
       const f = ctx.field;
       [ctx.alon, ctx.dad].forEach((p) => {
         const inn = ctx.input(p.id);
-        p.x += inn.ax * 280 * dt;
+        p.x += inn.ax * 300 * dt;
         p.x = ctx.clamp(p.x, f.x + p.r, f.x + f.w - p.r);
-        p.y = f.y + f.h - 36;
+        p.y = f.y + f.h - 38;
         ctx.data.cool[p.id] -= dt;
         if (inn.up && ctx.data.cool[p.id] <= 0) {
-          ctx.data.cool[p.id] = 0.18;
-          ctx.data.shots.push({ x: p.x, y: p.y - 20, vy: -420, who: p.id, r: 8, live: true });
+          ctx.data.cool[p.id] = 0.16;
+          ctx.data.shots.push({ x: p.x, y: p.y - 22, vy: -440, who: p.id, r: 8, live: true });
           ctx.beep(980, 0.04, "sine", 0.05);
         }
       });
-      if (Math.random() < 0.03) {
+      if (ctx.data.left > 0 && Math.random() < 0.025 + ctx.round * 0.01) {
         ctx.data.rocks.push({
           x: f.x + 30 + Math.random() * (f.w - 60),
-          y: f.y - 10, r: 16, vy: 70 + Math.random() * 50, live: true
+          y: f.y - 12, r: 14 + ctx.round * 2, vy: 80 + ctx.round * 25, live: true, gold: Math.random() < 0.15
         });
+        ctx.data.left -= 1;
       }
-      ctx.data.shots.forEach((s) => {
-        s.y += s.vy * dt;
-        if (s.y < f.y) s.live = false;
-      });
+      ctx.data.shots.forEach((s) => { s.y += s.vy * dt; if (s.y < f.y) s.live = false; });
       ctx.data.rocks.forEach((r) => {
         r.y += r.vy * dt;
         if (r.y > f.y + f.h) r.live = false;
         ctx.data.shots.forEach((s) => {
-          if (s.live && r.live && ctx.dist(s.x, s.y, r.x, r.y) < 20) {
+          if (s.live && r.live && ctx.dist(s.x, s.y, r.x, r.y) < 22) {
             r.live = false; s.live = false;
             const p = s.who === "alon" ? ctx.alon : ctx.dad;
-            ctx.addScore(p, 1);
-            ctx.chime();
-            ctx.burst(r.x, r.y, "#fde047", 14);
+            const n = r.gold ? 2 : 1;
+            ctx.data.got[p.id] += n; ctx.addScore(p, n, r.gold ? "STAR" : "+");
+            ctx.chime(); ctx.burst(r.x, r.y, "#fde047", 14);
+            if (ctx.data.got[p.id] >= ctx.data.need) ctx.winRound(p.id, "Sky beams!");
           }
         });
       });
       ctx.data.shots = ctx.data.shots.filter((s) => s.live);
       ctx.data.rocks = ctx.data.rocks.filter((r) => r.live);
-      ctx.maybeFirstTo(12);
+      ctx.setGoal(`${Math.max(ctx.data.got.alon, ctx.data.got.dad)}/${ctx.data.need}`);
     },
     draw(ctx) {
-      const { g, w, h } = ctx;
-      g.fillStyle = "#1e1b4b"; g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 24; i++) {
-        g.fillStyle = "rgba(255,255,255,.35)";
-        g.fillRect((i * 97 + ctx.t * 12) % w, (i * 53) % h, 2, 2);
-      }
-      ctx.fillField("rgba(255,255,255,.08)");
-      (ctx.data.rocks || []).forEach((r) => {
-        g.font = "28px serif"; g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText("🪨", r.x, r.y);
+      ctx.withShake(() => {
+        ctx.drawTheme("night");
+        (ctx.data.rocks || []).forEach((r) => ctx.icon(r.x, r.y, r.gold ? "⭐" : "🪨", r.gold ? "#fde047" : "#94a3b8", r.r * 0.7));
+        (ctx.data.shots || []).forEach((s) => {
+          ctx.g.fillStyle = "#fde047";
+          ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();
+        });
+        ctx.drawBuddies({ alon: "🚀", dad: "🛸" });
+        ctx.drawJuice();
       });
-      (ctx.data.shots || []).forEach((s) => {
-        g.fillStyle = "#fde047";
-        g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
-      });
-      ctx.drawBuddies({ alon: "🚀", dad: "🛸" });
-      ctx.drawSparks(0.016);
     }
   },
 
   "paint-arena": {
     title: "Paint Arena",
     emoji: "🎨",
-    blurb: "Twin-pad splat! Face where you walk, tap up to toss paint. First to 6 hits.",
+    blurb: "Three splat rounds! Face where you walk, toss paint, hide behind pillows.",
     hintAlon: "Alon: WASD move · W splat",
     hintDad: "Dad: arrows move · ↑ splat",
-    goal: "6 SPLATS",
+    goal: "BEST OF 3",
     lives: 3,
-    setup(ctx) {
+    rounds: 3,
+    roundNames: ["Dab", "Splash", "Mess"],
+    setup(ctx) { ctx.resetMatch(); },
+    setupRound(ctx, n) {
+      const f = ctx.field;
       ctx.data.shots = [];
       ctx.data.cool = { alon: 0, dad: 0 };
+      ctx.data.need = 3 + n;
+      ctx.data.hits = { alon: 0, dad: 0 };
+      ctx.data.cover = [
+        { x: f.x + f.w * 0.5, y: f.y + f.h * 0.5, r: 28 },
+        { x: f.x + f.w * 0.28, y: f.y + f.h * 0.32, r: 22 },
+        { x: f.x + f.w * 0.72, y: f.y + f.h * 0.68, r: 22 }
+      ];
       ctx.alon.aimx = 1; ctx.alon.aimy = 0;
       ctx.dad.aimx = -1; ctx.dad.aimy = 0;
+      ctx.alon.hearts = ctx.dad.hearts = 3;
+      ctx.alon.out = ctx.dad.out = false;
+      ctx.place(0.2, 0.8, 0.5);
     },
     update(ctx, dt) {
       [ctx.alon, ctx.dad].forEach((p) => {
         if (p.out) return;
-        const inn = ctx.moveTopDown(p, 230, dt);
+        const inn = ctx.moveTopDown(p, 220 + ctx.round * 15, dt);
         if (Math.abs(inn.ax) + Math.abs(inn.ay) > 0.2) {
           const m = Math.hypot(inn.ax, inn.ay) || 1;
-          p.aimx = inn.ax / m;
-          p.aimy = inn.ay / m;
+          p.aimx = inn.ax / m; p.aimy = inn.ay / m;
         }
         ctx.data.cool[p.id] -= dt;
         if (inn.up && ctx.data.cool[p.id] <= 0) {
-          ctx.data.cool[p.id] = 0.32;
+          ctx.data.cool[p.id] = 0.34;
           ctx.data.shots.push({
-            x: p.x, y: p.y, vx: p.aimx * 340, vy: p.aimy * 340,
-            who: p.id, r: 12, live: true, life: 1.1
+            x: p.x, y: p.y, vx: p.aimx * 360, vy: p.aimy * 360,
+            who: p.id, r: 12, live: true, life: 1.15
           });
           ctx.beep(420, 0.05, "triangle", 0.06);
         }
@@ -203,97 +228,112 @@ export const games = {
       ctx.data.shots.forEach((s) => {
         s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
         if (s.life <= 0) s.live = false;
+        if (ctx.data.cover.some((c) => ctx.dist(s.x, s.y, c.x, c.y) < c.r)) s.live = false;
         const other = s.who === "alon" ? ctx.dad : ctx.alon;
         if (s.live && !other.out && ctx.dist(s.x, s.y, other.x, other.y) < other.r + s.r) {
           s.live = false;
           const shooter = s.who === "alon" ? ctx.alon : ctx.dad;
-          ctx.addScore(shooter, 1);
+          ctx.data.hits[shooter.id] += 1;
+          ctx.addScore(shooter, 1, "SPLAT");
           ctx.hurt(other);
-          ctx.burst(other.x, other.y, shooter.color, 20);
+          ctx.punch(0.22);
+          if (ctx.data.hits[shooter.id] >= ctx.data.need) ctx.winRound(shooter.id, "Paint party!");
         }
       });
       ctx.data.shots = ctx.data.shots.filter((s) => s.live);
-      ctx.maybeFirstTo(6);
-      ctx.maybeLastHeart();
+      ctx.setGoal(`${Math.max(ctx.data.hits.alon, ctx.data.hits.dad)}/${ctx.data.need}`);
     },
     draw(ctx) {
-      const { g, w, h } = ctx;
-      g.fillStyle = "#fdf4ff"; g.fillRect(0, 0, w, h);
-      ctx.fillField("#fff7ed");
-      (ctx.data.shots || []).forEach((s) => {
-        g.fillStyle = s.who === "alon" ? "#fb7185" : "#38bdf8";
-        g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
+      ctx.withShake(() => {
+        ctx.drawTheme("paint");
+        (ctx.data.cover || []).forEach((c) => ctx.icon(c.x, c.y, "🛏️", "#fbcfe8", c.r * 0.7));
+        (ctx.data.shots || []).forEach((s) => {
+          ctx.g.fillStyle = s.who === "alon" ? "#fb7185" : "#38bdf8";
+          ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();
+        });
+        ctx.drawBuddies({ alon: "🎨", dad: "🖌️" });
+        ctx.drawJuice();
       });
-      ctx.drawBuddies({ alon: "🎨", dad: "🖌️" });
-      ctx.drawSparks(0.016);
     }
   },
 
   "balloon-boss": {
     title: "Balloon Boss",
     emoji: "🎈",
-    blurb: "A giant party balloon! Puff stars at it. Most pops when it bursts wins.",
+    blurb: "Three party balloons! Puff stars up. Most pops when a balloon bursts wins the heat.",
     hintAlon: "Alon: WASD · W puff",
     hintDad: "Dad: arrows · ↑ puff",
-    goal: "BOSS HP",
+    goal: "BEST OF 3",
     hearts: false,
-    setup(ctx) {
+    rounds: 3,
+    roundNames: ["Pink", "Gold", "Rainbow"],
+    setup(ctx) { ctx.resetMatch(); },
+    setupRound(ctx, n) {
       const f = ctx.field;
-      ctx.data.hp = 24;
+      ctx.data.hp = 16 + n * 8;
+      ctx.data.max = ctx.data.hp;
       ctx.data.shots = [];
       ctx.data.cool = { alon: 0, dad: 0 };
-      ctx.data.boss = { x: f.x + f.w / 2, y: f.y + f.h * 0.32, r: 54 };
+      ctx.data.hits = { alon: 0, dad: 0 };
+      ctx.data.boss = { x: f.x + f.w / 2, y: f.y + f.h * 0.28, r: 48 + n * 4 };
+      ctx.data.drops = [];
+      ctx.place(0.28, 0.72, 0.78);
     },
     update(ctx, dt) {
       const b = ctx.data.boss;
-      b.x = ctx.field.x + ctx.field.w / 2 + Math.sin(ctx.t * 0.8) * ctx.field.w * 0.22;
-      b.y = ctx.field.y + ctx.field.h * 0.3 + Math.cos(ctx.t * 1.1) * 24;
+      const amp = ctx.field.w * (0.18 + ctx.round * 0.04);
+      b.x = ctx.field.x + ctx.field.w / 2 + Math.sin(ctx.t * (0.8 + ctx.round * 0.2)) * amp;
+      b.y = ctx.field.y + ctx.field.h * 0.28 + Math.cos(ctx.t * 1.2) * 22;
+      if (ctx.round > 1 && Math.random() < 0.012) {
+        ctx.data.drops.push({ x: b.x, y: b.y + 30, vy: 140, live: true });
+      }
       [ctx.alon, ctx.dad].forEach((p) => {
-        ctx.moveTopDown(p, 230, dt);
+        ctx.moveTopDown(p, 240, dt);
         ctx.data.cool[p.id] -= dt;
-        const inn = ctx.input(p.id);
-        if (inn.up && ctx.data.cool[p.id] <= 0) {
-          ctx.data.cool[p.id] = 0.2;
-          ctx.data.shots.push({ x: p.x, y: p.y, vx: 0, vy: -360, who: p.id, r: 9, live: true });
-          ctx.beep(700, 0.05, "sine", 0.05);
+        if (ctx.input(p.id).up && ctx.data.cool[p.id] <= 0) {
+          ctx.data.cool[p.id] = 0.18;
+          ctx.data.shots.push({ x: p.x, y: p.y, vy: -380, who: p.id, r: 9, live: true });
+          ctx.beep(700, 0.04, "sine", 0.05);
         }
+        ctx.data.drops.forEach((d) => {
+          if (d.live && ctx.dist(p.x, p.y, d.x, d.y) < 24) { d.live = false; ctx.flash(p.id); ctx.bump(); }
+        });
       });
+      ctx.data.drops.forEach((d) => { d.y += d.vy * dt; if (d.y > ctx.field.y + ctx.field.h) d.live = false; });
       ctx.data.shots.forEach((s) => {
-        s.x += s.vx * dt; s.y += s.vy * dt;
+        s.y += s.vy * dt;
         if (s.y < ctx.field.y) s.live = false;
         if (s.live && ctx.dist(s.x, s.y, b.x, b.y) < b.r) {
-          s.live = false;
-          ctx.data.hp -= 1;
+          s.live = false; ctx.data.hp -= 1;
           const p = s.who === "alon" ? ctx.alon : ctx.dad;
-          ctx.addScore(p, 1);
-          ctx.chime();
-          ctx.burst(s.x, s.y, p.color, 10);
+          ctx.data.hits[p.id] += 1; ctx.addScore(p, 1); ctx.chime();
+          ctx.burst(s.x, s.y, p.color, 8); ctx.punch(0.08);
         }
       });
       ctx.data.shots = ctx.data.shots.filter((s) => s.live);
-      ctx.setGoal(`${Math.max(0, ctx.data.hp)} hits`);
+      ctx.data.drops = ctx.data.drops.filter((d) => d.live);
+      ctx.setGoal(`${Math.max(0, ctx.data.hp)} hp`);
       if (ctx.data.hp <= 0) {
-        const a = ctx.alon.score, d = ctx.dad.score;
-        ctx.end(a === d ? "tie" : a > d ? "alon" : "dad", null, "The balloon went POP!", "🎈");
+        const a = ctx.data.hits.alon, d = ctx.data.hits.dad;
+        ctx.winRound(a === d ? (Math.random() < 0.5 ? "alon" : "dad") : a > d ? "alon" : "dad", "POP!");
       }
     },
     draw(ctx) {
-      const { g, w, h } = ctx;
-      const bg = g.createLinearGradient(0, 0, 0, h);
-      bg.addColorStop(0, "#fce7f3"); bg.addColorStop(1, "#fde68a");
-      g.fillStyle = bg; g.fillRect(0, 0, w, h);
-      ctx.fillField("rgba(255,255,255,.22)");
-      const b = ctx.data.boss || { x: w / 2, y: 180, r: 54 };
-      g.font = `${b.r * 2}px serif`;
-      g.textAlign = "center";
-      g.textBaseline = "middle";
-      g.fillText("🎈", b.x, b.y);
-      (ctx.data.shots || []).forEach((s) => {
-        g.fillStyle = "#fde047";
-        g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
+      ctx.withShake(() => {
+        ctx.drawTheme("party");
+        const b = ctx.data.boss || { x: ctx.w / 2, y: 160, r: 50 };
+        const colors = ["#fb7185", "#fbbf24", "#a78bfa"];
+        ctx.icon(b.x, b.y, "🎈", colors[ctx.round - 1] || "#fb7185", b.r * 0.55);
+        ctx.g.fillStyle = "rgba(12,74,110,.25)";
+        ctx.g.fillRect(ctx.field.x + 40, ctx.field.y + 10, ctx.field.w - 80, 10);
+        ctx.g.fillStyle = "#fb7185";
+        const w = (ctx.field.w - 80) * (ctx.data.hp / (ctx.data.max || 1));
+        ctx.g.fillRect(ctx.field.x + 40, ctx.field.y + 10, Math.max(0, w), 10);
+        (ctx.data.shots || []).forEach((s) => { ctx.g.fillStyle = "#fde047"; ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill(); });
+        (ctx.data.drops || []).forEach((d) => ctx.icon(d.x, d.y, "💧", "#7dd3fc", 8));
+        ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+        ctx.drawJuice();
       });
-      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
-      ctx.drawSparks(0.016);
     }
   }
 };

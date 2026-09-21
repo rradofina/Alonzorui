@@ -42,6 +42,54 @@ export function bump() {
 export function fanfare() {
   [523, 659, 784, 988, 1175].forEach((f, i) => setTimeout(() => beep(f, 0.22, "triangle", 0.11), i * 110));
 }
+export function pop() {
+  beep(880, 0.05, "square", 0.05);
+  setTimeout(() => beep(1320, 0.07, "triangle", 0.06), 40);
+}
+export function whoosh() {
+  beep(220, 0.12, "sawtooth", 0.03);
+}
+export function goalHorn() {
+  [392, 523, 659, 784].forEach((f, i) => setTimeout(() => beep(f, 0.16, "square", 0.08), i * 90));
+}
+
+const THEMES = {
+  meadow: { sky: ["#7dd3fc", "#bbf7d0"], hill: "#4ade80", hill2: "#86efac", field: "rgba(255,255,255,.2)" },
+  candy: { sky: ["#fce7f3", "#fde68a"], hill: "#fb7185", hill2: "#f9a8d4", field: "rgba(255,255,255,.28)" },
+  ice: { sky: ["#e0f2fe", "#7dd3fc"], hill: "#bae6fd", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
+  sunset: { sky: ["#38bdf8", "#f9a8d4"], hill: "#fda4af", hill2: "#fde68a", field: "rgba(255,255,255,.18)" },
+  sea: { sky: ["#67e8f9", "#0369a1"], hill: "#0ea5e9", hill2: "#22d3ee", field: "rgba(255,255,255,.1)" },
+  jungle: { sky: ["#fde68a", "#86efac"], hill: "#22c55e", hill2: "#4ade80", field: "rgba(255,255,255,.16)" },
+  night: { sky: ["#1e1b4b", "#312e81"], hill: "#312e81", hill2: "#1e1b4b", field: "rgba(255,255,255,.08)" },
+  paint: { sky: ["#fdf4ff", "#e0f2fe"], hill: "#c4b5fd", hill2: "#f9a8d4", field: "rgba(255,255,255,.35)" },
+  party: { sky: ["#fce7f3", "#fde68a"], hill: "#f472b6", hill2: "#fbbf24", field: "rgba(255,255,255,.22)" },
+  track: { sky: ["#fdba74", "#facc15"], hill: "#f97316", hill2: "#fde68a", field: "rgba(255,255,255,.2)" },
+  snow: { sky: ["#e0f2fe", "#93c5fd"], hill: "#fff", hill2: "#dbeafe", field: "rgba(255,255,255,.3)" },
+  grass: { sky: ["#86efac", "#4ade80"], hill: "#16a34a", hill2: "#86efac", field: "rgba(255,255,255,.2)" },
+  sand: { sky: ["#fde68a", "#fb923c"], hill: "#fbbf24", hill2: "#fdba74", field: "rgba(255,255,255,.22)" },
+  pong: { sky: ["#fb7185", "#fbbf24"], hill: "#fb7185", hill2: "#fde68a", field: "rgba(255,255,255,.16)" },
+  "ice rink": { sky: ["#38bdf8", "#e0f2fe"], hill: "#7dd3fc", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
+  gold: { sky: ["#fde047", "#fb7185"], hill: "#f59e0b", hill2: "#fbbf24", field: "rgba(255,255,255,.2)" },
+  potato: { sky: ["#fdba74", "#fb7185"], hill: "#ea580c", hill2: "#fdba74", field: "rgba(255,255,255,.2)" },
+  crate: { sky: ["#fef3c7", "#86efac"], hill: "#ca8a04", hill2: "#fde68a", field: "rgba(255,255,255,.3)" },
+  mirror: { sky: ["#ede9fe", "#f9a8d4"], hill: "#c4b5fd", hill2: "#ddd6fe", field: "rgba(255,255,255,.3)" },
+  bright: { sky: ["#fff7ed", "#bae6fd"], hill: "#fdba74", hill2: "#fde68a", field: "rgba(12,74,110,.06)" },
+  cards: { sky: ["#f3e8ff", "#fde68a"], hill: "#a78bfa", hill2: "#ddd6fe", field: "rgba(255,255,255,.25)" },
+  tower: { sky: ["#fff7ed", "#fdba74"], hill: "#fb923c", hill2: "#fde68a", field: "rgba(255,255,255,.28)" },
+  pillow: { sky: ["#fbcfe8", "#c4b5fd"], hill: "#f9a8d4", hill2: "#e9d5ff", field: "rgba(255,255,255,.28)" },
+  frost: { sky: ["#e0f2fe", "#38bdf8"], hill: "#fff", hill2: "#bae6fd", field: "rgba(255,255,255,.22)" },
+  sumo: { sky: ["#fde68a", "#f97316"], hill: "#fb923c", hill2: "#fde047", field: "rgba(255,255,255,.22)" },
+  coins: { sky: ["#facc15", "#fb923c"], hill: "#f59e0b", hill2: "#fde68a", field: "rgba(255,255,255,.18)" },
+  orchard: { sky: ["#86efac", "#fb7185"], hill: "#22c55e", hill2: "#bbf7d0", field: "rgba(255,255,255,.2)" },
+  soap: { sky: ["#67e8f9", "#a78bfa"], hill: "#22d3ee", hill2: "#c4b5fd", field: "rgba(255,255,255,.16)" },
+  pets: { sky: ["#86efac", "#f9a8d4"], hill: "#4ade80", hill2: "#fbcfe8", field: "rgba(255,255,255,.22)" },
+  noodle: { sky: ["#dcfce7", "#86efac"], hill: "#14532d", hill2: "#22c55e", field: "rgba(20,83,45,.55)" },
+  glow: { sky: ["#020617", "#0f172a"], hill: "#022c22", hill2: "#164e63", field: "rgba(255,255,255,.04)" },
+  blocks: { sky: ["#1e1b4b", "#312e81"], hill: "#1e1b4b", hill2: "#4c1d95", field: "rgba(255,255,255,.06)" },
+  connect: { sky: ["#fff7ed", "#dbeafe"], hill: "#1d4ed8", hill2: "#93c5fd", field: "rgba(255,255,255,.25)" },
+  mole: { sky: ["#86efac", "#4ade80"], hill: "#365314", hill2: "#65a30d", field: "#bbf7d0" },
+  spark: { sky: ["#312e81", "#1e1b4b"], hill: "#4c1d95", hill2: "#312e81", field: "rgba(255,255,255,.08)" }
+};
 
 function injectShell(spec) {
   document.title = `${spec.title} · AlonzoRui`;
@@ -183,6 +231,12 @@ function bindPad(el, who, pads) {
   el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
+function iHash(s) {
+  let h = 0;
+  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return (h % 7) * 0.4;
+}
+
 export function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 export function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
 export function aabb(a, b) {
@@ -298,9 +352,13 @@ export function run(spec) {
     alon, dad, sparks,
     w: 0, h: 0, field: { x: 0, y: 0, w: 0, h: 0 },
     t: 0, now: 0, playing: false,
-    beep, chime, starChime, bump, fanfare,
+    beep, chime, starChime, bump, fanfare, pop, whoosh, goalHorn,
     clamp, dist, aabb, circleHit,
     data: {},
+    freeze: 0, shake: 0, floaters: [],
+    round: 1, maxRounds: spec.rounds || 3,
+    roundWins: { alon: 0, dad: 0 },
+    matchScore: { alon: 0, dad: 0 },
     padReserve() {
       const coarse = matchMedia("(pointer: coarse), (max-width: 900px)").matches;
       if (!coarse) return 28;
@@ -377,10 +435,14 @@ export function run(spec) {
     },
     movePlatform(p, opts, dt) {
       const inn = ctx.input(p.id);
-      const speed = opts.speed || 240;
-      const grav = opts.gravity == null ? 1400 : opts.gravity;
-      const jump = opts.jump || 520;
+      const speed = opts.speed || 280;
+      const grav = opts.gravity == null ? 1150 : opts.gravity;
+      const jump = opts.jump || 720;
       const ice = opts.ice || 0;
+      if (p._ground) p._coyote = 0.22;
+      else p._coyote = Math.max(0, (p._coyote || 0) - dt);
+      if (inn.up) p._buffer = 0.2;
+      else p._buffer = Math.max(0, (p._buffer || 0) - dt);
       if (opts.swim) {
         p.vx += inn.ax * speed * 3 * dt;
         p.vy += inn.ay * speed * 3 * dt;
@@ -388,22 +450,25 @@ export function run(spec) {
         p.vy *= Math.pow(0.08, dt);
       } else if (ice) {
         p.vx += inn.ax * speed * ice * dt;
-        p.vx *= Math.pow(0.25, dt);
+        p.vx *= Math.pow(0.22, dt);
       } else {
         p.vx = inn.ax * speed;
       }
       if (inn.ax) p.facing = inn.ax > 0 ? 1 : -1;
       p.vy += grav * dt;
-      if (opts.onGround && inn.up && p._ground && !p._jumpLock) {
+      const canJump = opts.onGround && p._buffer > 0 && (p._ground || p._coyote > 0) && !p._jumpLock;
+      if (canJump) {
         p.vy = -jump;
         p._ground = false;
+        p._coyote = 0;
+        p._buffer = 0;
         p._jumpLock = true;
         p.squish = 1.18;
         beep(520, 0.06, "square", 0.05);
       }
       if (!inn.up) p._jumpLock = false;
       if (opts.bouncePad && p._bounce) {
-        p.vy = -jump * 1.35;
+        p.vy = -jump * 1.28;
         p._bounce = false;
         p.squish = 1.25;
         beep(640, 0.08, "triangle", 0.07);
@@ -418,12 +483,15 @@ export function run(spec) {
       p._ground = false;
       p._bounce = false;
       for (const plat of platforms) {
-        const left = p.x + p.r * 0.4 > plat.x && p.x - p.r * 0.4 < plat.x + plat.w;
+        const pad = 14;
+        const left = p.x + p.r * 0.12 > plat.x - pad && p.x - p.r * 0.12 < plat.x + plat.w + pad;
         const feet = p.y + p.r;
-        if (left && feet >= plat.y && feet <= plat.y + Math.max(18, plat.h || 16) + Math.max(0, p.vy) * 0.02 && p.vy >= -20) {
+        const window = Math.max(34, (plat.h || 18) + 20) + Math.abs(p.vy) * 0.06;
+        if (left && feet >= plat.y - 6 && feet <= plat.y + window && p.vy >= -50) {
           p.y = plat.y - p.r;
           p.vy = 0;
           p._ground = true;
+          p._coyote = 0.22;
           if (plat.bounce) p._bounce = true;
         }
       }
@@ -473,13 +541,167 @@ export function run(spec) {
       el.classList.add("on");
       bannerT = (ms || 900) / 1000;
     },
-    addScore(p, n) {
+    addScore(p, n, label) {
       p.score += n;
+      ctx.matchScore[p.id] = p.score;
       const el = document.getElementById(p.id === "alon" ? "alonPill" : "dadPill");
       el.classList.remove("pop");
       void el.offsetWidth;
       el.classList.add("pop");
+      ctx.float(p.x, p.y - p.r - 8, label || ("+" + n), p.color);
       ctx.paint();
+    },
+    float(x, y, text, color) {
+      ctx.floaters.push({ x, y, text, color: color || "#fff", life: 0.8, vy: -50 });
+    },
+    punch(n) { ctx.shake = Math.max(ctx.shake, n || 0.28); },
+    frozen() { return ctx.freeze > 0; },
+    place(alonN, dadN, yN) {
+      const f = ctx.field;
+      ctx.alon.x = f.x + f.w * (alonN == null ? 0.22 : alonN);
+      ctx.dad.x = f.x + f.w * (dadN == null ? 0.78 : dadN);
+      ctx.alon.y = ctx.dad.y = f.y + f.h * (yN == null ? 0.72 : yN);
+      ctx.alon.vx = ctx.dad.vx = ctx.alon.vy = ctx.dad.vy = 0;
+    },
+    resetMatch() {
+      ctx.round = 1;
+      ctx.roundWins = { alon: 0, dad: 0 };
+      ctx.matchScore = { alon: 0, dad: 0 };
+      ctx.freeze = 0;
+      ctx.floaters = [];
+      ctx.shake = 0;
+    },
+    countIn(roundName) {
+      ctx.freeze = 2.35;
+      const label = roundName || `Round ${ctx.round}`;
+      ctx.banner(label, 700);
+      setTimeout(() => { if (ctx.playing) { ctx.banner("3", 350); beep(392, 0.08, "square", 0.07); } }, 750);
+      setTimeout(() => { if (ctx.playing) { ctx.banner("2", 350); beep(440, 0.08, "square", 0.07); } }, 1150);
+      setTimeout(() => { if (ctx.playing) { ctx.banner("1", 350); beep(523, 0.08, "square", 0.07); } }, 1550);
+      setTimeout(() => { if (ctx.playing) { ctx.banner("GO!", 400); pop(); ctx.freeze = 0; } }, 1950);
+    },
+    async startRound(n, title) {
+      ctx.round = n;
+      ctx.freeze = 2.4;
+      if (spec.setupRound) await spec.setupRound(ctx, n);
+      ctx.setGoal(`R${n}/${ctx.maxRounds}`);
+      ctx.countIn(title || `Round ${n}`);
+    },
+    winRound(who, text) {
+      if (ctx.frozen() || !ctx.playing) return;
+      ctx.roundWins[who] = (ctx.roundWins[who] || 0) + 1;
+      const p = who === "alon" ? ctx.alon : ctx.dad;
+      ctx.addScore(p, 1, "ROUND!");
+      ctx.punch(0.4);
+      ctx.goalHorn();
+      ctx.burst(p.x, p.y, p.color, 36);
+      ctx.banner(`${p.name} takes round ${ctx.round}!`, 900);
+      ctx.freeze = 1.35;
+      const need = Math.ceil(ctx.maxRounds / 2);
+      setTimeout(() => {
+        if (!ctx.playing) return;
+        if (ctx.roundWins[who] >= need || ctx.round >= ctx.maxRounds) {
+          const a = ctx.roundWins.alon, d = ctx.roundWins.dad;
+          const w = a === d ? "tie" : a > d ? "alon" : "dad";
+          ctx.end(w, w === "tie" ? "Match tie!" : `${w === "alon" ? "Alon" : "Dad"} wins the match!`,
+            text || `Rounds  Alon ${a} – ${d} Dad`, spec.emoji);
+        } else {
+          ctx.startRound(ctx.round + 1);
+        }
+      }, 1300);
+    },
+    closeWaves(text) {
+      const a = ctx.alon.score, d = ctx.dad.score;
+      ctx.end(a === d ? "tie" : a > d ? "alon" : "dad", null, text || "What a match!", spec.emoji);
+    },
+    nextWaveOrEnd(waveGoal, text) {
+      if (ctx.round >= ctx.maxRounds) { ctx.closeWaves(text); return; }
+      ctx.freeze = 1.1;
+      ctx.banner(`Wave ${ctx.round} clear!`, 800);
+      ctx.starChime();
+      setTimeout(() => { if (ctx.playing) ctx.startRound(ctx.round + 1); }, 1000);
+    },
+    drawTheme(name) {
+      const th = THEMES[name] || THEMES.meadow;
+      const sky = g.createLinearGradient(0, 0, 0, ctx.h);
+      sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
+      g.fillStyle = sky; g.fillRect(0, 0, ctx.w, ctx.h);
+      if (name === "night" || name === "glow" || name === "spark" || name === "blocks") {
+        g.fillStyle = "rgba(255,255,255,.35)";
+        for (let i = 0; i < 28; i++) {
+          const x = ((i * 97 + ctx.t * 8) % ctx.w);
+          const y = (i * 53 + 20) % (ctx.h * 0.7);
+          g.fillRect(x, y, 2, 2);
+        }
+      } else {
+        g.fillStyle = "rgba(255,255,255,.55)";
+        for (let i = 0; i < 5; i++) {
+          const x = ((ctx.t * (12 + i * 4) + i * 160) % (ctx.w + 80)) - 40;
+          const y = 40 + (i % 3) * 28;
+          g.beginPath();
+          g.ellipse(x, y, 28, 16, 0, 0, Math.PI * 2);
+          g.ellipse(x + 18, y + 4, 22, 12, 0, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      g.fillStyle = th.hill2;
+      g.beginPath();
+      g.moveTo(0, ctx.h);
+      for (let x = 0; x <= ctx.w; x += 20) {
+        g.lineTo(x, ctx.h * 0.78 + Math.sin(x * 0.01 + iHash(name)) * 18);
+      }
+      g.lineTo(ctx.w, ctx.h); g.closePath(); g.fill();
+      g.fillStyle = th.hill;
+      g.beginPath();
+      g.moveTo(0, ctx.h);
+      for (let x = 0; x <= ctx.w; x += 18) {
+        g.lineTo(x, ctx.h * 0.86 + Math.sin(x * 0.014 + 2) * 12);
+      }
+      g.lineTo(ctx.w, ctx.h); g.closePath(); g.fill();
+      ctx.fillField(th.field);
+      g.save();
+      g.font = "800 15px Trebuchet MS, sans-serif";
+      g.fillStyle = "rgba(12,74,110,.45)";
+      g.fillText(`Round ${ctx.round} / ${ctx.maxRounds}   Alon ${ctx.roundWins.alon} – ${ctx.roundWins.dad} Dad`,
+        ctx.field.x + 14, ctx.field.y + 20);
+      g.restore();
+    },
+    drawPlats(plats, color) {
+      (plats || []).forEach((p) => {
+        g.fillStyle = p.bounce ? "#f472b6" : p.ice ? "#e0f2fe" : p.hurt ? "#fb923c" : (color || "#86efac");
+        g.beginPath();
+        g.roundRect(p.x, p.y, p.w, p.h, 10);
+        g.fill();
+        g.strokeStyle = "rgba(255,255,255,.35)";
+        g.stroke();
+        if (p.bounce) ctx.icon(p.x + p.w / 2, p.y + p.h / 2, "🍄", "#fb7185", 10);
+      });
+    },
+    tickJuice(dt) {
+      ctx.freeze = Math.max(0, ctx.freeze - dt);
+      ctx.shake = Math.max(0, ctx.shake - dt);
+      ctx.floaters = ctx.floaters.filter((f) => {
+        f.life -= dt; f.y += f.vy * dt; return f.life > 0;
+      });
+    },
+    drawJuice() {
+      ctx.floaters.forEach((f) => {
+        g.globalAlpha = Math.max(0, f.life * 1.4);
+        g.font = "800 22px Trebuchet MS, sans-serif";
+        g.textAlign = "center";
+        g.fillStyle = f.color;
+        g.fillText(f.text, f.x, f.y);
+        g.globalAlpha = 1;
+      });
+      ctx.drawSparks(0.016);
+    },
+    withShake(fn) {
+      g.save();
+      if (ctx.shake > 0) {
+        g.translate((Math.random() - 0.5) * ctx.shake * 22, (Math.random() - 0.5) * ctx.shake * 16);
+      }
+      fn();
+      g.restore();
     },
     hurt(p) {
       if (p.out || p.inv > 0) return false;
@@ -638,13 +860,17 @@ export function run(spec) {
   async function startGame() {
       ctx.resize();
       resetPlayers();
+      ctx.resetMatch();
+      ctx.t = 0;
       showPlayChrome();
       if (spec.setup) await spec.setup(ctx);
+      ctx.maxRounds = spec.rounds || 3;
       ctx.paint();
       playing = true;
       ctx.playing = true;
-      beep(523, 0.1, "triangle", 0.1);
-      setTimeout(() => beep(784, 0.12, "triangle", 0.1), 90);
+      if (spec.setupRound) await spec.setupRound(ctx, 1);
+      ctx.setGoal(`R1/${ctx.maxRounds}`);
+      ctx.countIn(spec.roundNames ? spec.roundNames[0] : "Round 1");
     }
 
   function tick(now) {
@@ -652,15 +878,20 @@ export function run(spec) {
     last = now;
     ctx.now = now;
     ctx.t += dt;
+    ctx.tickJuice(dt);
     bannerT -= dt;
     if (bannerT <= 0) document.getElementById("banner").classList.remove("on");
-    if (playing) {
-      if (spec.update) spec.update(ctx, dt);
-      ctx.latchPrev();
-    }
-    if (spec.draw) spec.draw(ctx, dt);
-    else if (!spec.mode) {
-      g.clearRect(0, 0, ctx.w, ctx.h);
+    try {
+      if (playing) {
+        if (!ctx.frozen() && spec.update) spec.update(ctx, dt);
+        ctx.latchPrev();
+      }
+      if (spec.draw) spec.draw(ctx, dt);
+      else if (!spec.mode) {
+        g.clearRect(0, 0, ctx.w, ctx.h);
+      }
+    } catch (err) {
+      console.warn(spec.title || "game", err);
     }
     requestAnimationFrame(tick);
   }
