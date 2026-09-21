@@ -41,19 +41,37 @@ async function bootThree(ctx, bg) {
 function makeOrb(THREE, color) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(
-    new THREE.SphereGeometry(0.46, 18, 14),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.42 })
+    new THREE.SphereGeometry(0.5, 18, 14),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.4 })
   );
   g.add(body);
-  const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 8, 8),
-    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  const belly = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 12, 10),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 })
   );
-  eye.position.set(0.16, 0.12, 0.36);
+  belly.position.set(0, -0.06, 0.22);
+  belly.scale.set(1, 0.85, 0.5);
+  g.add(belly);
+  const eyeM = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeM);
+  eye.position.set(0.16, 0.12, 0.4);
   g.add(eye);
   const eye2 = eye.clone();
   eye2.position.x = -0.16;
   g.add(eye2);
+  const pupilM = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+  const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), pupilM);
+  pupil.position.set(0.18, 0.12, 0.48);
+  g.add(pupil);
+  const pupil2 = pupil.clone();
+  pupil2.position.x = -0.14;
+  g.add(pupil2);
+  const hat = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 10, 8),
+    new THREE.MeshStandardMaterial({ color: color === 0xfb7185 ? 0xfde047 : 0x0c4a6e })
+  );
+  hat.position.set(0, 0.48, 0);
+  g.add(hat);
   return g;
 }
 
@@ -66,6 +84,17 @@ function addMesh(ctx, mesh) {
   ctx._extra = ctx._extra || [];
   ctx._extra.push(mesh);
   ctx._three.scene.add(mesh);
+}
+
+function addClouds(ctx, THREE, n) {
+  for (let i = 0; i < (n || 8); i++) {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7 + (i % 3) * 0.25, 10, 8),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.88 })
+    );
+    m.position.set((i % 2 ? -8 : 8) + (i % 3) * 0.6, 2.4 + (i % 4) * 0.4, -10 - i * 12);
+    addMesh(ctx, m);
+  }
 }
 
 export const games = {
@@ -99,6 +128,7 @@ export const games = {
         };
         road(ALON_X, 0xfb7185);
         road(DAD_X, 0x38bdf8);
+        addClouds(ctx, THREE, 10);
         ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
         addMesh(ctx, ctx.data.orbs.alon);
         addMesh(ctx, ctx.data.orbs.dad);
@@ -190,6 +220,7 @@ export const games = {
         ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
         addMesh(ctx, ctx.data.orbs.alon);
         addMesh(ctx, ctx.data.orbs.dad);
+        addClouds(ctx, THREE, 8);
         ctx._worldRing = true;
       }
       (ctx.data.rings || []).forEach((r) => t.scene.remove(r));

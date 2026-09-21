@@ -194,8 +194,11 @@ export const games = {
         const goalH = f.h * 0.38, gy0 = f.y + (f.h - goalH) / 2;
         g.strokeStyle = "rgba(255,255,255,.7)"; g.lineWidth = 3;
         g.strokeRect(f.x + f.w / 2 - 1, f.y, 2, f.h);
-        g.fillStyle = "#fb7185"; g.fillRect(f.x, gy0, 14, goalH);
-        g.fillStyle = "#38bdf8"; g.fillRect(f.x + f.w - 14, gy0, 14, goalH);
+        g.fillStyle = "#fb7185"; g.fillRect(f.x, gy0, 16, goalH);
+        g.fillStyle = "#38bdf8"; g.fillRect(f.x + f.w - 16, gy0, 16, goalH);
+        g.strokeStyle = "rgba(255,255,255,.8)"; g.lineWidth = 4;
+        g.strokeRect(f.x, gy0, 16, goalH);
+        g.strokeRect(f.x + f.w - 16, gy0, 16, goalH);
         const b = ctx.data.ball;
         if (b) ctx.icon(b.x, b.y, "⚽", "#f8fafc", 14);
         ctx.drawBuddies({ alon: "🐥", dad: "🐧" });

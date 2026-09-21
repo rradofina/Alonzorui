@@ -43,7 +43,18 @@ function drawScrollWorld(ctx, theme, extras) {
     ctx.drawPlats(ctx.data.plats, extras.platColor);
     (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.icon(c.x, c.y, extras.coin || "🪙", "#fbbf24", 13); });
     (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.icon(h.x, h.y, extras.haz || "🌵", "#86efac", 14); });
-    if (ctx.data.flag) ctx.icon(ctx.data.flag.x, ctx.data.flag.y, "🏁", "#fbbf24", 20);
+    if (ctx.data.flag) {
+      const fl = ctx.data.flag;
+      ctx.g.fillStyle = "#92400e";
+      ctx.g.fillRect(fl.x - 3, fl.y - 8, 6, 52);
+      ctx.g.fillStyle = "#fbbf24";
+      ctx.g.beginPath();
+      ctx.g.moveTo(fl.x + 3, fl.y - 6);
+      ctx.g.lineTo(fl.x + 38, fl.y + 8);
+      ctx.g.lineTo(fl.x + 3, fl.y + 22);
+      ctx.g.fill();
+      ctx.icon(fl.x + 8, fl.y + 6, "🏁", "#fde047", 12);
+    }
     const ox = ctx.data.camX || 0;
     ctx.alon.x -= ox; ctx.dad.x -= ox;
     ctx.drawBuddies(extras.faces);
