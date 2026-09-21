@@ -210,7 +210,6 @@ function makePlayer(id) {
 }
 
 export function drawBuddy(g, p, emoji) {
-  const s = p.r * 2.2;
   g.save();
   g.translate(p.x, p.y);
   g.scale(1, p.squish || 1);
@@ -222,41 +221,46 @@ export function drawBuddy(g, p, emoji) {
   g.fillStyle = p.color;
   g.arc(0, 0, p.r, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = "rgba(255,255,255,.28)";
+  g.strokeStyle = "rgba(255,255,255,.55)";
+  g.lineWidth = 3;
+  g.stroke();
+  g.fillStyle = "rgba(255,255,255,.32)";
   g.beginPath();
   g.arc(-p.r * 0.28, -p.r * 0.28, p.r * 0.32, 0, Math.PI * 2);
   g.fill();
+  g.fillStyle = "#fff";
+  g.beginPath();
+  g.arc(-p.r * 0.28, -p.r * 0.12, p.r * 0.18, 0, Math.PI * 2);
+  g.arc(p.r * 0.28, -p.r * 0.12, p.r * 0.18, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = "#1e293b";
+  g.beginPath();
+  g.arc(-p.r * 0.22 + p.facing * 3, -p.r * 0.1, p.r * 0.09, 0, Math.PI * 2);
+  g.arc(p.r * 0.34 + p.facing * 3, -p.r * 0.1, p.r * 0.09, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = "#1e293b";
+  g.lineWidth = 2.5;
+  g.beginPath();
+  g.arc(0, p.r * 0.2, p.r * 0.32, 0.15, Math.PI - 0.15);
+  g.stroke();
   if (emoji) {
-    g.font = `${s * 0.72}px serif`;
+    g.font = `${p.r}px serif`;
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillText(emoji, 0, 2);
-  } else {
-    g.fillStyle = "#fff";
-    g.beginPath();
-    g.arc(-p.r * 0.28, -p.r * 0.12, p.r * 0.16, 0, Math.PI * 2);
-    g.arc(p.r * 0.28, -p.r * 0.12, p.r * 0.16, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = "#1e293b";
-    g.beginPath();
-    g.arc(-p.r * 0.24 + p.facing * 2, -p.r * 0.1, p.r * 0.08, 0, Math.PI * 2);
-    g.arc(p.r * 0.32 + p.facing * 2, -p.r * 0.1, p.r * 0.08, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = "#1e293b";
-    g.lineWidth = 2;
-    g.beginPath();
-    g.arc(0, p.r * 0.18, p.r * 0.28, 0.15, Math.PI - 0.15);
-    g.stroke();
+    g.fillText(emoji, p.r * 0.55, -p.r * 0.7);
   }
   g.restore();
 }
 
 export function drawLabel(g, p, text) {
   g.save();
-  g.font = "800 13px Trebuchet MS, sans-serif";
+  g.font = "800 16px Trebuchet MS, sans-serif";
   g.textAlign = "center";
+  g.lineWidth = 4;
+  g.strokeStyle = "rgba(12,74,110,.35)";
+  g.strokeText(text || p.name, p.x, p.y - p.r - 12);
   g.fillStyle = p.color;
-  g.fillText(text || p.name, p.x, p.y - p.r - 10);
+  g.fillText(text || p.name, p.x, p.y - p.r - 12);
   g.restore();
 }
 
@@ -515,6 +519,25 @@ export function run(spec) {
       g.beginPath();
       g.roundRect(f.x, f.y, f.w, f.h, r);
       g.fill();
+      g.strokeStyle = "rgba(255,255,255,.55)";
+      g.lineWidth = 4;
+      g.stroke();
+    },
+    icon(x, y, emoji, color, r) {
+      const rad = r || 14;
+      g.save();
+      g.fillStyle = color || "#fbbf24";
+      g.beginPath();
+      g.arc(x, y, rad, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(255,255,255,.7)";
+      g.lineWidth = 2;
+      g.stroke();
+      g.font = `${rad * 1.6}px serif`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(emoji, x, y + 1);
+      g.restore();
     },
     drawSparks(dt) {
       for (let i = sparks.length - 1; i >= 0; i--) {
@@ -591,7 +614,7 @@ export function run(spec) {
       p.inv = 0;
       p.out = false;
       p.vx = 0; p.vy = 0;
-      p.r = spec.radius || 22;
+      p.r = spec.radius || 30;
       p.squish = 1;
       p.x = f.x + f.w * (i ? 0.72 : 0.28);
       p.y = f.y + f.h * 0.62;

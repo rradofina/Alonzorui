@@ -111,8 +111,7 @@ export const games = {
       g.fillStyle = "#fff";
       g.fillRect(f.x, f.y + f.h * 0.78, f.w, f.h * 0.22);
       (ctx.data.items || []).forEach((it) => {
-        g.font = "28px serif"; g.textAlign = "center";
-        g.fillText(it.kind === "cocoa" ? "🍫" : "❄️", it.x, it.y);
+        ctx.icon(it.x, it.y, it.kind === "cocoa" ? "🍫" : "❄️", it.kind === "cocoa" ? "#b45309" : "#e0f2fe", 14);
       });
       ctx.drawBuddies({ alon: "🛷", dad: "🎿" });
       ctx.drawSparks(0.016);

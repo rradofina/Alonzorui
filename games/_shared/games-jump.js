@@ -48,7 +48,9 @@ export const games = {
         [0.78, 0.28, 0.2, 0.04]
       ]);
       sideRaceSetup(ctx);
-      ctx.alon.y = ctx.dad.y = ctx.field.y + ctx.field.h - 40;
+      ctx.alon.x = ctx.field.x + 70;
+      ctx.dad.x = ctx.field.x + 130;
+      ctx.alon.y = ctx.dad.y = ctx.field.y + ctx.field.h - 56;
     },
     update(ctx, dt) {
       [ctx.alon, ctx.dad].forEach((p) => {
@@ -70,9 +72,7 @@ export const games = {
       g.fillStyle = sky; g.fillRect(0, 0, w, h);
       ctx.fillField("rgba(255,255,255,.18)");
       drawPlats(g, ctx.data.plats || []);
-      g.font = "48px serif";
-      g.textAlign = "center";
-      g.fillText("🏁", ctx.data.finish || (f.x + f.w - 40), f.y + f.h * 0.24);
+      ctx.icon(ctx.data.finish || (f.x + f.w - 40), f.y + f.h * 0.24, "🏁", "#fbbf24", 22);
       ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
       ctx.drawSparks(0.016);
     }
@@ -132,9 +132,7 @@ export const games = {
       drawPlats(g, ctx.data.plats || []);
       (ctx.data.coins || []).forEach((c) => {
         if (!c.live) return;
-        g.font = "26px serif";
-        g.textAlign = "center";
-        g.fillText("🪙", c.x, c.y + 8);
+        ctx.icon(c.x, c.y, "🪙", "#fbbf24", 14);
       });
       ctx.drawBuddies({ alon: "🐰", dad: "🐻" });
       ctx.drawSparks(0.016);
@@ -206,9 +204,7 @@ export const games = {
       drawPlats(g, ctx.data.plats || [], "#bae6fd");
       (ctx.data.stars || []).forEach((s) => {
         if (!s.live) return;
-        g.font = "28px serif";
-        g.textAlign = "center";
-        g.fillText("⭐", s.x, s.y + 8);
+        ctx.icon(s.x, s.y, "⭐", "#fde047", 15);
       });
       ctx.drawBuddies({ alon: "🐧", dad: "🦭" });
       ctx.drawSparks(0.016);
@@ -346,9 +342,7 @@ export const games = {
       ctx.fillField("rgba(255,255,255,.1)");
       (ctx.data.pearls || []).forEach((c) => {
         if (!c.live) return;
-        g.font = "24px serif";
-        g.textAlign = "center";
-        g.fillText("🤍", c.x, c.y + Math.sin(c.wob * 3) * 6);
+        ctx.icon(c.x, c.y + Math.sin(c.wob * 3) * 6, "•", "#f8fafc", 10);
       });
       (ctx.data.jellies || []).forEach((j) => {
         g.font = "36px serif";

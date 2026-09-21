@@ -148,7 +148,17 @@ export const games = {
     hintDad: "Dad: arrows grab",
     goal: "12 COINS",
     hearts: false,
-    setup(ctx) { ctx.data.coins = []; },
+    setup(ctx) {
+      ctx.data.coins = [];
+      const f = ctx.field;
+      for (let i = 0; i < 6; i++) {
+        ctx.data.coins.push({
+          x: f.x + 40 + Math.random() * (f.w - 80),
+          y: f.y + 40 + Math.random() * (f.h - 80),
+          r: 12, live: true
+        });
+      }
+    },
     update(ctx, dt) {
       const f = ctx.field;
       if ((ctx.data.coins || []).length < 7 && Math.random() < 0.08) {
@@ -174,10 +184,7 @@ export const games = {
     },
     draw(ctx) {
       arenaBg(ctx, "#facc15", "#fb923c");
-      (ctx.data.coins || []).forEach((c) => {
-        ctx.g.font = "26px serif"; ctx.g.textAlign = "center";
-        ctx.g.fillText("🪙", c.x, c.y);
-      });
+      (ctx.data.coins || []).forEach((c) => ctx.icon(c.x, c.y, "🪙", "#fbbf24", 14));
       ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
       ctx.drawSparks(0.016);
     }
@@ -197,6 +204,15 @@ export const games = {
       ctx.alon.y = ctx.dad.y = f.y + f.h - 32;
       ctx.alon.x = f.x + f.w * 0.28;
       ctx.dad.x = f.x + f.w * 0.72;
+      for (let i = 0; i < 4; i++) {
+        ctx.data.fall.push({
+          x: f.x + 30 + Math.random() * (f.w - 60),
+          y: f.y + 20 + i * 30,
+          kind: "fruit",
+          vy: 140,
+          live: true
+        });
+      }
     },
     update(ctx, dt) {
       const f = ctx.field;
@@ -232,8 +248,8 @@ export const games = {
     draw(ctx) {
       arenaBg(ctx, "#4ade80", "#fb7185");
       (ctx.data.fall || []).forEach((it) => {
-        ctx.g.font = "28px serif"; ctx.g.textAlign = "center";
-        ctx.g.fillText(it.kind === "fruit" ? ["🍎", "🍌", "🍇", "🍊"][(it.x | 0) % 4] : "🥦", it.x, it.y);
+        const fruit = ["🍎", "🍌", "🍇", "🍊"][(it.x | 0) % 4];
+        ctx.icon(it.x, it.y, it.kind === "fruit" ? fruit : "🥦", it.kind === "fruit" ? "#fb7185" : "#4ade80", 14);
       });
       ctx.drawBuddies({ alon: "🧺", dad: "🧺" });
       ctx.drawSparks(0.016);
@@ -248,7 +264,19 @@ export const games = {
     hintDad: "Dad: arrows poke",
     goal: "15 POPS",
     hearts: false,
-    setup(ctx) { ctx.data.bub = []; },
+    setup(ctx) {
+      ctx.data.bub = [];
+      const f = ctx.field;
+      for (let i = 0; i < 5; i++) {
+        ctx.data.bub.push({
+          x: f.x + 30 + Math.random() * (f.w - 60),
+          y: f.y + f.h * 0.4 + Math.random() * 80,
+          r: 18 + Math.random() * 10,
+          vy: -60,
+          live: true
+        });
+      }
+    },
     update(ctx, dt) {
       const f = ctx.field;
       if (ctx.data.bub.length < 8 && Math.random() < 0.06) {
@@ -320,8 +348,7 @@ export const games = {
       arenaBg(ctx, "#86efac", "#f9a8d4");
       (ctx.data.pets || []).forEach((pet) => {
         if (!pet.live) return;
-        ctx.g.font = "32px serif"; ctx.g.textAlign = "center";
-        ctx.g.fillText(pet.emoji, pet.x, pet.y);
+        ctx.icon(pet.x, pet.y, pet.emoji, "#f9a8d4", 18);
       });
       ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
       ctx.drawSparks(0.016);
