@@ -256,7 +256,9 @@ export const games = {
           g.fill();
         }
         g.globalAlpha = 1;
-        (ctx.data.cover || []).forEach((c) => ctx.prop("pillow", c.x, c.y, c.r * 0.7));
+        (ctx.data.cover || []).forEach((c, i) => ctx.prop("pillow", c.x, c.y, c.r * 0.85, {
+          color: ["#f472b6", "#38bdf8", "#fde047"][i % 3]
+        }));
         (ctx.data.shots || []).forEach((s) => {
           ctx.g.fillStyle = s.who === "alon" ? "#fb7185" : "#38bdf8";
           ctx.g.beginPath(); ctx.g.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.g.fill();

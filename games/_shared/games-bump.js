@@ -50,7 +50,9 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("pillow");
-        (ctx.data.beds || []).forEach((b) => ctx.prop("pillow", b.x, b.y, b.r * 0.7));
+        (ctx.data.beds || []).forEach((b, i) => ctx.prop("pillow", b.x, b.y, b.r * 0.85, {
+          color: ["#f472b6", "#c4b5fd", "#fde047", "#67e8f9"][i % 4]
+        }));
         ctx.drawBuddies({ alon: "🛏️", dad: "🧸" });
         ctx.drawJuice();
       });

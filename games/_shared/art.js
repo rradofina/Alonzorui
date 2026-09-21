@@ -752,9 +752,12 @@ export function paintProp(g, kind, x, y, r, t, extra) {
     g.beginPath(); g.moveTo(-rad + 4, -rad + 4); g.lineTo(rad - 4, rad - 4);
     g.moveTo(rad - 4, -rad + 4); g.lineTo(-rad + 4, rad - 4); g.stroke();
   } else if (k === "pillow") {
-    g.fillStyle = extra && extra.color || "#fbcfe8";
-    g.beginPath(); g.roundRect(-rad * 1.2, -rad * 0.7, rad * 2.4, rad * 1.4, 12); g.fill();
-    g.fillStyle = "rgba(255,255,255,.4)";
+    g.fillStyle = extra && extra.color || "#f472b6";
+    g.beginPath(); g.roundRect(-rad * 1.25, -rad * 0.75, rad * 2.5, rad * 1.5, 14); g.fill();
+    g.strokeStyle = "rgba(255,255,255,.7)";
+    g.lineWidth = 3;
+    g.stroke();
+    g.fillStyle = "rgba(255,255,255,.45)";
     g.fillRect(-rad * 0.6, -rad * 0.35, rad, 6);
   } else if (k === "snowman") {
     oval(g, 0, rad * 0.35, rad * 0.85, rad * 0.7, "#fff");
