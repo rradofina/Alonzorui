@@ -1,7 +1,11 @@
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js";
 
 async function bootThree(ctx, bg) {
-  if (ctx.data.three) return ctx.data.three;
+  if (ctx._three) {
+    ctx.data.three = ctx._three;
+    ctx._three.scene.background.setHex(bg || 0x7dd3fc);
+    return ctx._three;
+  }
   const THREE = await import(THREE_URL);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -12,7 +16,7 @@ async function bootThree(ctx, bg) {
   if (canvas2) canvas2.style.display = "none";
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(bg || 0x7dd3fc);
-  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 220);
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 260);
   scene.add(new THREE.HemisphereLight(0xffffff, 0xffe7a8, 1.05));
   const sun = new THREE.DirectionalLight(0xfff4d2, 1.1);
   sun.position.set(12, 22, 8);
@@ -23,139 +27,179 @@ async function bootThree(ctx, bg) {
     renderer.setSize(innerWidth, innerHeight);
   };
   addEventListener("resize", onResize);
-  ctx.data.three = { THREE, renderer, scene, camera, onResize };
-  ctx._persist = Object.assign(ctx._persist || {}, { three: ctx.data.three });
-  return ctx.data.three;
+  ctx._three = { THREE, renderer, scene, camera, onResize };
+  ctx.data.three = ctx._three;
+  return ctx._three;
 }
 
 function makeOrb(THREE, color) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(
-    new THREE.SphereGeometry(0.42, 16, 12),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.45 })
+    new THREE.SphereGeometry(0.46, 18, 14),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.42 })
   );
   g.add(body);
+  const eye = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  eye.position.set(0.16, 0.12, 0.36);
+  g.add(eye);
+  const eye2 = eye.clone();
+  eye2.position.x = -0.16;
+  g.add(eye2);
   return g;
+}
+
+function render3d(ctx) {
+  const t = ctx.data.three || ctx._three;
+  if (t) t.renderer.render(t.scene, t.camera);
+}
+
+function addMesh(ctx, mesh) {
+  ctx._extra = ctx._extra || [];
+  ctx._extra.push(mesh);
+  ctx._three.scene.add(mesh);
 }
 
 export const games = {
   "sky-lanes": {
     title: "Sky Lanes",
     emoji: "🌈",
-    blurb: "A short 3-lane sky dash. Swap lanes and race to the rainbow gate!",
+    blurb: "Three sky cups! Swap the wide lanes, dodge puffs — first through the rainbow gate wins the heat.",
     hintAlon: "Alon: A D lanes",
     hintDad: "Dad: ← → lanes",
-    goal: "RACE",
+    goal: "BEST OF 3",
     hearts: false,
     mode: "3d",
-    async setup(ctx) {
-      if (ctx._worldSky) {
-        ctx.data.lanes = { alon: 0, dad: 0 };
-        ctx.data.z = { alon: 0, dad: 0 };
-        ctx.data.x = { alon: ctx.data.centers.alon, dad: ctx.data.centers.dad };
-        ctx.data.done = { alon: false, dad: false };
-        return;
-      }
+    rounds: 3,
+    roundNames: ["Breeze", "Gust", "Storm"],
+    setup(ctx) { ctx.resetMatch(); },
+    async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x7dd3fc);
-      const { THREE, scene, camera } = t;
-      camera.position.set(0, 6.2, 12);
-      // Camera looks toward -Z, so +X is screen-right.
-      const ALON_X = -3.4, DAD_X = 3.4;
-      ctx.data.centers = { alon: ALON_X, dad: DAD_X };
+      const { THREE, camera } = t;
+      if (!ctx._worldSky) {
+        camera.position.set(0, 6.2, 12);
+        const ALON_X = -3.6, DAD_X = 3.6;
+        ctx.data.centers = { alon: ALON_X, dad: DAD_X };
+        const road = (x, color) => {
+          const m = new THREE.Mesh(
+            new THREE.BoxGeometry(6.2, 0.25, 240),
+            new THREE.MeshStandardMaterial({ color })
+          );
+          m.position.set(x, -0.2, -90);
+          addMesh(ctx, m);
+        };
+        road(ALON_X, 0xfb7185);
+        road(DAD_X, 0x38bdf8);
+        ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
+        addMesh(ctx, ctx.data.orbs.alon);
+        addMesh(ctx, ctx.data.orbs.dad);
+        ctx._worldSky = true;
+      }
+      if (ctx.data.gate) t.scene.remove(ctx.data.gate);
+      const gate = new THREE.Mesh(
+        new THREE.TorusGeometry(2.4, 0.14, 8, 28),
+        new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.45 })
+      );
+      gate.position.set(0, 1.7, -88);
+      t.scene.add(gate);
+      ctx.data.gate = gate;
+      (ctx.data.puffs || []).forEach((p) => t.scene.remove(p.mesh));
+      ctx.data.puffs = [];
+      for (let i = 0; i < 4 + n; i++) {
+        const lane = ((i * 2 + n) % 3) - 1;
+        ["alon", "dad"].forEach((id) => {
+          const m = new THREE.Mesh(
+            new THREE.SphereGeometry(0.55, 10, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
+          );
+          const z = -16 - i * 16;
+          m.position.set(ctx.data.centers[id] + lane * 1.7, 0.9, z);
+          t.scene.add(m);
+          ctx.data.puffs.push({ mesh: m, who: id, lane, z });
+        });
+      }
       ctx.data.lanes = { alon: 0, dad: 0 };
       ctx.data.z = { alon: 0, dad: 0 };
-      ctx.data.x = { alon: ALON_X, dad: DAD_X };
+      ctx.data.x = { alon: ctx.data.centers.alon, dad: ctx.data.centers.dad };
       ctx.data.done = { alon: false, dad: false };
-      const road = (x, color) => {
-        const m = new THREE.Mesh(
-          new THREE.BoxGeometry(5.4, 0.25, 220),
-          new THREE.MeshStandardMaterial({ color })
-        );
-        m.position.set(x, -0.2, -90);
-        scene.add(m);
-      };
-      road(ALON_X, 0xfb7185);
-      road(DAD_X, 0x38bdf8);
-      const gate = new THREE.Mesh(
-        new THREE.TorusGeometry(2.2, 0.12, 8, 24),
-        new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.4 })
-      );
-      gate.position.set(0, 1.6, -110);
-      scene.add(gate);
-      ctx.data.orbs = {
-        alon: makeOrb(THREE, 0xfb7185),
-        dad: makeOrb(THREE, 0x38bdf8)
-      };
-      scene.add(ctx.data.orbs.alon, ctx.data.orbs.dad);
-      ctx.alon.x = ALON_X; ctx.dad.x = DAD_X;
-      ctx._worldSky = true;
+      ctx.data.finish = 82;
     },
     update(ctx, dt) {
       const t = ctx.data.three;
       if (!t) return;
-      const { camera } = t;
       ["alon", "dad"].forEach((id) => {
         if (ctx.data.done[id]) return;
         const inn = ctx.input(id);
         if (ctx.pressed(id, "left")) ctx.data.lanes[id] = Math.max(-1, ctx.data.lanes[id] - 1);
         if (ctx.pressed(id, "right")) ctx.data.lanes[id] = Math.min(1, ctx.data.lanes[id] + 1);
-        const want = ctx.data.centers[id] + ctx.data.lanes[id] * 1.6;
-        ctx.data.x[id] += (want - ctx.data.x[id]) * Math.min(1, 10 * dt);
-        ctx.data.z[id] += (18 + (inn.up ? 6 : 0)) * dt;
+        const want = ctx.data.centers[id] + ctx.data.lanes[id] * 1.7;
+        ctx.data.x[id] += (want - ctx.data.x[id]) * Math.min(1, 12 * dt);
+        ctx.data.z[id] += (15 + (inn.up ? 5 : 0)) * dt;
         const orb = ctx.data.orbs[id];
-        orb.position.set(ctx.data.x[id], 0.8 + Math.sin(ctx.t * 6) * 0.08, -ctx.data.z[id]);
-        if (ctx.data.z[id] >= 110) {
+        orb.position.set(ctx.data.x[id], 0.85 + Math.sin(ctx.t * 6) * 0.08, -ctx.data.z[id]);
+        ctx.data.puffs.forEach((p) => {
+          if (p.who !== id) return;
+          if (Math.abs(p.z + ctx.data.z[id]) < 0.7 && ctx.data.lanes[id] === p.lane) {
+            ctx.data.z[id] = Math.max(0, ctx.data.z[id] - 8);
+            ctx.flash(id); ctx.bump(); ctx.punch(0.12);
+          }
+        });
+        if (ctx.data.z[id] >= ctx.data.finish) {
           ctx.data.done[id] = true;
-          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1);
-          ctx.end(id, `${id === "alon" ? "Alon" : "Dad"} wins!`, "Rainbow gate!", "🌈");
+          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1, "GATE");
+          ctx.winRound(id, "Rainbow gate!");
         }
       });
       ctx.setGoal(`${Math.max(ctx.data.z.alon, ctx.data.z.dad) | 0}m`);
       const midX = (ctx.data.x.alon + ctx.data.x.dad) * 0.08;
       const lead = Math.max(ctx.data.z.alon, ctx.data.z.dad);
-      camera.position.lerp({ x: midX, y: 6, z: 12 - lead } , 0.08);
-      camera.lookAt(midX, 1.2, -lead - 12);
-      t.renderer.render(t.scene, camera);
+      t.camera.position.lerp({ x: midX, y: 6, z: 12 - lead }, 0.1);
+      t.camera.lookAt(midX, 1.2, -lead - 12);
+      t.renderer.render(t.scene, t.camera);
     },
-    draw() {}
+    draw: render3d
   },
 
   "ring-glide": {
     title: "Ring Glide",
     emoji: "💍",
-    blurb: "Fly a hoop course in the sky. First to thread 8 rings wins!",
+    blurb: "Three hoop courses! Fat rings sit on a gentle wave. First to thread the set wins the heat.",
     hintAlon: "Alon: WASD fly",
     hintDad: "Dad: arrows fly",
-    goal: "8 RINGS",
+    goal: "BEST OF 3",
     hearts: false,
     mode: "3d",
-    async setup(ctx) {
-      if (ctx._worldRing) {
-        ctx.data.pos = { alon: { x: -2.2, y: 2, z: 0 }, dad: { x: 2.2, y: 2, z: 0 } };
-        ctx.data.rings.forEach((r) => { r.userData.hit = { alon: false, dad: false }; });
-        return;
-      }
+    rounds: 3,
+    roundNames: ["Loop", "Wave", "Ribbon"],
+    setup(ctx) { ctx.resetMatch(); },
+    async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x38bdf8);
-      const { THREE, scene, camera } = t;
-      camera.position.set(0, 4, 10);
-      ctx.data.pos = {
-        alon: { x: -2.2, y: 2, z: 0 },
-        dad: { x: 2.2, y: 2, z: 0 }
-      };
-      ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
-      scene.add(ctx.data.orbs.alon, ctx.data.orbs.dad);
+      const { THREE, camera } = t;
+      if (!ctx._worldRing) {
+        camera.position.set(0, 4.2, 10);
+        ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
+        addMesh(ctx, ctx.data.orbs.alon);
+        addMesh(ctx, ctx.data.orbs.dad);
+        ctx._worldRing = true;
+      }
+      (ctx.data.rings || []).forEach((r) => t.scene.remove(r));
       ctx.data.rings = [];
-      for (let i = 0; i < 10; i++) {
+      const count = 6 + n;
+      for (let i = 0; i < count; i++) {
         const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(1.1, 0.08, 8, 24),
-          new THREE.MeshStandardMaterial({ color: i % 2 ? 0xfbbf24 : 0xf472b6 })
+          new THREE.TorusGeometry(1.85, 0.12, 8, 28),
+          new THREE.MeshStandardMaterial({ color: i % 2 ? 0xfbbf24 : 0xf472b6, emissive: 0xf59e0b, emissiveIntensity: 0.18 })
         );
-        ring.position.set((i % 2 ? 1.4 : -1.4), 1.6 + (i % 3) * 0.5, -12 - i * 9);
+        ring.position.set(Math.sin(i * 0.42) * 2.1, 2.15 + Math.sin(i * 0.65) * 0.55, -10 - i * 7);
         ring.userData.hit = { alon: false, dad: false };
-        scene.add(ring);
+        t.scene.add(ring);
         ctx.data.rings.push(ring);
       }
-      ctx._worldRing = true;
+      ctx.data.pos = { alon: { x: -1.6, y: 2.1, z: 0 }, dad: { x: 1.6, y: 2.1, z: 0 } };
+      ctx.data.need = count;
+      ctx.data.got = { alon: 0, dad: 0 };
     },
     update(ctx, dt) {
       const t = ctx.data.three;
@@ -163,179 +207,194 @@ export const games = {
       ["alon", "dad"].forEach((id) => {
         const inn = ctx.input(id);
         const p = ctx.data.pos[id];
-        // +X is screen-right while looking toward -Z.
-        p.x += inn.ax * 6 * dt;
-        p.y += -inn.ay * 5 * dt;
-        p.z -= (7 + (inn.up ? 3 : 0)) * dt;
-        p.x = ctx.clamp(p.x, -6, 6);
-        p.y = ctx.clamp(p.y, 0.4, 6);
+        p.x += inn.ax * 7 * dt;
+        p.y += -inn.ay * 5.5 * dt;
+        p.z -= (6.2 + (inn.up ? 2.2 : 0)) * dt;
+        p.x = ctx.clamp(p.x, -5.5, 5.5);
+        p.y = ctx.clamp(p.y, 0.5, 5.2);
         ctx.data.orbs[id].position.set(p.x, p.y, p.z);
         ctx.data.rings.forEach((r) => {
           if (r.userData.hit[id]) return;
           const d = Math.hypot(r.position.x - p.x, r.position.y - p.y, r.position.z - p.z);
-          if (d < 1.2) {
+          if (d < 1.75) {
             r.userData.hit[id] = true;
-            ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1);
+            ctx.data.got[id] += 1;
+            ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1, "RING");
             ctx.chime();
+            if (ctx.data.got[id] >= ctx.data.need) ctx.winRound(id, "Hoop hero!");
           }
         });
       });
       const lead = Math.min(ctx.data.pos.alon.z, ctx.data.pos.dad.z);
-      t.camera.position.lerp({ x: 0, y: 4.2, z: lead + 10 }, 0.1);
-      t.camera.lookAt(0, 2, lead - 8);
+      t.camera.position.lerp({ x: 0, y: 4.4, z: lead + 10 }, 0.1);
+      t.camera.lookAt(0, 2.1, lead - 8);
       t.renderer.render(t.scene, t.camera);
-      ctx.maybeFirstTo(8);
+      ctx.setGoal(`${Math.max(ctx.data.got.alon, ctx.data.got.dad)}/${ctx.data.need}`);
     },
-    draw() {}
+    draw: render3d
   },
 
   "maze-marble": {
     title: "Maze Marble",
     emoji: "🔮",
-    blurb: "Tilt your marble through the walls. First into the glow hole wins!",
+    blurb: "Three wide marble yards! Tilt to the glow hole — corridors stay fat so nobody gets stuck.",
     hintAlon: "Alon: WASD tilt",
     hintDad: "Dad: arrows tilt",
-    goal: "HOLE",
+    goal: "BEST OF 3",
     hearts: false,
     mode: "3d",
-    async setup(ctx) {
-      if (ctx._worldMarble) {
-        ctx.data.ball = { alon: { x: -5.5, z: 5.5, vx: 0, vz: 0 }, dad: { x: -4.4, z: 5.5, vx: 0, vz: 0 } };
-        return;
-      }
+    rounds: 3,
+    roundNames: ["Yard", "Garden", "Lab"],
+    setup(ctx) { ctx.resetMatch(); },
+    async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x134e4a);
-      const { THREE, scene, camera } = t;
-      camera.position.set(0, 14, 10);
-      const floor = new THREE.Mesh(
-        new THREE.BoxGeometry(16, 0.3, 16),
-        new THREE.MeshStandardMaterial({ color: 0x34d399 })
-      );
-      floor.position.y = -0.15;
-      scene.add(floor);
+      const { THREE, camera } = t;
+      camera.position.set(0, 15, 11);
+      if (!ctx._worldMarble) {
+        const floor = new THREE.Mesh(
+          new THREE.BoxGeometry(16, 0.3, 16),
+          new THREE.MeshStandardMaterial({ color: 0x34d399 })
+        );
+        floor.position.y = -0.15;
+        addMesh(ctx, floor);
+        ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
+        addMesh(ctx, ctx.data.orbs.alon);
+        addMesh(ctx, ctx.data.orbs.dad);
+        ctx._worldMarble = true;
+      }
+      (ctx.data.wallMeshes || []).forEach((m) => t.scene.remove(m));
+      if (ctx.data.holeMesh) t.scene.remove(ctx.data.holeMesh);
       ctx.data.walls = [];
+      ctx.data.wallMeshes = [];
       const addWall = (x, z, w, d) => {
         const m = new THREE.Mesh(
           new THREE.BoxGeometry(w, 0.8, d),
           new THREE.MeshStandardMaterial({ color: 0x115e59 })
         );
         m.position.set(x, 0.4, z);
-        scene.add(m);
+        t.scene.add(m);
+        ctx.data.wallMeshes.push(m);
         ctx.data.walls.push({ x, z, w, d });
       };
-      addWall(0, -3, 10, 0.4);
-      addWall(-3, 1.5, 0.4, 8);
-      addWall(3, 2, 0.4, 6);
-      addWall(0, 5, 8, 0.4);
+      marbleLayout(n).forEach((w) => addWall(w[0], w[1], w[2], w[3]));
+      const holePos = n === 1 ? { x: 4.6, z: -4.6 } : n === 2 ? { x: 4.8, z: -4.8 } : { x: 5.0, z: -5.0 };
       const hole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.55, 0.55, 0.2, 18),
-        new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.5 })
+        new THREE.CylinderGeometry(1.15, 1.15, 0.22, 22),
+        new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.55 })
       );
-      hole.position.set(5.2, 0.05, -5.2);
-      scene.add(hole);
-      ctx.data.hole = { x: 5.2, z: -5.2 };
+      hole.position.set(holePos.x, 0.05, holePos.z);
+      t.scene.add(hole);
+      ctx.data.holeMesh = hole;
+      ctx.data.hole = holePos;
+      ctx.data.done = { alon: false, dad: false };
       ctx.data.ball = {
-        alon: { x: -5.5, z: 5.5, vx: 0, vz: 0 },
-        dad: { x: -4.4, z: 5.5, vx: 0, vz: 0 }
+        alon: { x: -5.2, z: 5.2, vx: 0, vz: 0 },
+        dad: { x: -3.8, z: 5.2, vx: 0, vz: 0 }
       };
-      ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
-      scene.add(ctx.data.orbs.alon, ctx.data.orbs.dad);
-      ctx._worldMarble = true;
     },
     update(ctx, dt) {
       const t = ctx.data.three;
       if (!t) return;
       ["alon", "dad"].forEach((id) => {
+        if (ctx.data.done[id]) return;
         const inn = ctx.input(id);
         const b = ctx.data.ball[id];
-        // Screen-right is +X; screen-up (away) is -Z from this camera.
-        b.vx += inn.ax * 18 * dt;
-        b.vz += inn.ay * 18 * dt;
-        b.vx *= Math.pow(0.18, dt);
-        b.vz *= Math.pow(0.18, dt);
+        b.vx += inn.ax * 16 * dt;
+        b.vz += inn.ay * 16 * dt;
+        b.vx *= Math.pow(0.16, dt);
+        b.vz *= Math.pow(0.16, dt);
         b.x += b.vx * dt;
         b.z += b.vz * dt;
-        b.x = ctx.clamp(b.x, -7.4, 7.4);
-        b.z = ctx.clamp(b.z, -7.4, 7.4);
+        b.x = ctx.clamp(b.x, -7.2, 7.2);
+        b.z = ctx.clamp(b.z, -7.2, 7.2);
         ctx.data.walls.forEach((w) => {
-          const dx = Math.abs(b.x - w.x) - (w.w / 2 + 0.35);
-          const dz = Math.abs(b.z - w.z) - (w.d / 2 + 0.35);
+          const dx = Math.abs(b.x - w.x) - (w.w / 2 + 0.42);
+          const dz = Math.abs(b.z - w.z) - (w.d / 2 + 0.42);
           if (dx < 0 && dz < 0) {
-            if (dx > dz) { b.x += Math.sign(b.x - w.x) * -dx; b.vx *= -0.3; }
-            else { b.z += Math.sign(b.z - w.z) * -dz; b.vz *= -0.3; }
+            if (dx > dz) { b.x += Math.sign(b.x - w.x || 1) * -dx; b.vx *= -0.25; }
+            else { b.z += Math.sign(b.z - w.z || 1) * -dz; b.vz *= -0.25; }
           }
         });
-        ctx.data.orbs[id].position.set(b.x, 0.42, b.z);
-        if (Math.hypot(b.x - ctx.data.hole.x, b.z - ctx.data.hole.z) < 0.7) {
-          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1);
-          ctx.end(id, `${id === "alon" ? "Alon" : "Dad"} wins!`, "Down the glow hole!", "🔮");
+        ctx.data.orbs[id].position.set(b.x, 0.46, b.z);
+        if (Math.hypot(b.x - ctx.data.hole.x, b.z - ctx.data.hole.z) < 1.15) {
+          ctx.data.done[id] = true;
+          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1, "HOLE");
+          ctx.winRound(id, "Down the glow hole!");
         }
       });
       t.camera.lookAt(0, 0, 0);
       t.renderer.render(t.scene, t.camera);
     },
-    draw() {}
+    draw: render3d
   },
 
   "space-pads": {
     title: "Space Pads",
     emoji: "🚀",
-    blurb: "Hop the moon pads. First buddy to the flag pad wins!",
+    blurb: "Three moon hops! Fat pads sit close together. Tap hop — first to the flag pad wins the heat.",
     hintAlon: "Alon: A D step · W hop",
     hintDad: "Dad: ← → step · ↑ hop",
-    goal: "MOON",
+    goal: "BEST OF 3",
     hearts: false,
     mode: "3d",
-    async setup(ctx) {
-      if (ctx._worldPads) {
-        ctx.data.idx = { alon: 0, dad: 0 };
-        ctx.data.cool = { alon: 0, dad: 0 };
-        return;
-      }
+    rounds: 3,
+    roundNames: ["Dust", "Crater", "Flag"],
+    setup(ctx) { ctx.resetMatch(); },
+    async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x0f172a);
-      const { THREE, scene, camera } = t;
-      camera.position.set(0, 8, 12);
+      const { THREE, camera } = t;
+      if (!ctx._worldPads) {
+        camera.position.set(0, 8, 12);
+        ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
+        addMesh(ctx, ctx.data.orbs.alon);
+        addMesh(ctx, ctx.data.orbs.dad);
+        ctx._worldPads = true;
+      }
+      (ctx.data.padMeshes || []).forEach((m) => t.scene.remove(m));
+      ctx.data.padMeshes = [];
       ctx.data.pads = [];
-      for (let i = 0; i < 8; i++) {
+      const count = 6 + n;
+      for (let i = 0; i < count; i++) {
+        const last = i === count - 1;
         const m = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.9, 0.9, 0.25, 16),
-          new THREE.MeshStandardMaterial({ color: i === 7 ? 0xfde047 : 0xa78bfa })
+          new THREE.CylinderGeometry(1.25, 1.25, 0.28, 18),
+          new THREE.MeshStandardMaterial({ color: last ? 0xfde047 : 0xa78bfa })
         );
-        m.position.set((i % 2 ? 1.6 : -1.6), 0, -i * 3.4);
-        scene.add(m);
+        const x = (i % 2 ? 0.9 : -0.9);
+        const z = -i * 2.6;
+        m.position.set(x, 0, z);
+        t.scene.add(m);
+        ctx.data.padMeshes.push(m);
         ctx.data.pads.push(m.position.clone());
       }
       ctx.data.idx = { alon: 0, dad: 0 };
       ctx.data.cool = { alon: 0, dad: 0 };
-      ctx.data.orbs = { alon: makeOrb(THREE, 0xfb7185), dad: makeOrb(THREE, 0x38bdf8) };
-      scene.add(ctx.data.orbs.alon, ctx.data.orbs.dad);
-      ctx._worldPads = true;
+      ctx.data.done = { alon: false, dad: false };
     },
     update(ctx, dt) {
       const t = ctx.data.three;
       if (!t) return;
       ["alon", "dad"].forEach((id) => {
+        if (ctx.data.done[id]) return;
         ctx.data.cool[id] -= dt;
         const inn = ctx.input(id);
         const pads = ctx.data.pads;
-        let i = ctx.data.idx[id];
-        if (ctx.data.cool[id] <= 0 && (inn.up || inn.right || (id === "alon" && inn.right))) {
-          if (inn.up || inn.right) {
-            i = Math.min(pads.length - 1, i + 1);
-            ctx.data.idx[id] = i;
-            ctx.data.cool[id] = 0.28;
-            ctx.beep(640, 0.06, "triangle", 0.05);
-          }
+        if (ctx.data.cool[id] <= 0 && (inn.up || inn.right)) {
+          ctx.data.idx[id] = Math.min(pads.length - 1, ctx.data.idx[id] + 1);
+          ctx.data.cool[id] = 0.22;
+          ctx.beep(640, 0.06, "triangle", 0.05);
         }
         if (ctx.data.cool[id] <= 0 && inn.left && ctx.data.idx[id] > 0) {
           ctx.data.idx[id] -= 1;
-          ctx.data.cool[id] = 0.28;
+          ctx.data.cool[id] = 0.22;
         }
         const target = pads[ctx.data.idx[id]];
         const orb = ctx.data.orbs[id];
-        orb.position.lerp({ x: target.x + (id === "alon" ? -0.25 : 0.25), y: 0.7, z: target.z }, 0.2);
+        orb.position.lerp({ x: target.x + (id === "alon" ? -0.28 : 0.28), y: 0.72, z: target.z }, 0.22);
         if (ctx.data.idx[id] >= pads.length - 1) {
-          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1);
-          ctx.end(id, `${id === "alon" ? "Alon" : "Dad"} wins!`, "Moon hop!", "🚀");
+          ctx.data.done[id] = true;
+          ctx.addScore(id === "alon" ? ctx.alon : ctx.dad, 1, "MOON");
+          ctx.winRound(id, "Moon hop!");
         }
       });
       const lead = ctx.data.orbs.alon.position.clone().lerp(ctx.data.orbs.dad.position, 0.5);
@@ -343,6 +402,25 @@ export const games = {
       t.camera.lookAt(lead.x, 0.4, lead.z);
       t.renderer.render(t.scene, t.camera);
     },
-    draw() {}
+    draw: render3d
   }
 };
+
+// Wide corridors (3+ units) from start (-5.2, 5.2) to the glow hole.
+// Round 1: one short island — walk around either side.
+// Round 2: two staggered bars with a 3.2-unit door.
+// Round 3: gentle zigzag, still no squeeze gaps.
+function marbleLayout(n) {
+  if (n === 1) return [[0, 0, 4.2, 0.7]];
+  if (n === 2) {
+    return [
+      [2.4, 2.2, 9.0, 0.7],
+      [-2.4, -2.0, 9.0, 0.7]
+    ];
+  }
+  return [
+    [2.4, 3.0, 9.0, 0.7],
+    [-2.4, 0.0, 9.0, 0.7],
+    [2.4, -3.0, 9.0, 0.7]
+  ];
+}
