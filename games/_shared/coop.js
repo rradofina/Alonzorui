@@ -68,7 +68,7 @@ const THEMES = {
   grass: { sky: ["#86efac", "#4ade80"], hill: "#16a34a", hill2: "#86efac", field: "rgba(255,255,255,.2)" },
   sand: { sky: ["#fde68a", "#fb923c"], hill: "#fbbf24", hill2: "#fdba74", field: "rgba(255,255,255,.22)" },
   pong: { sky: ["#fb7185", "#fbbf24"], hill: "#fb7185", hill2: "#fde68a", field: "rgba(255,255,255,.16)" },
-  ice rink: { sky: ["#38bdf8", "#e0f2fe"], hill: "#7dd3fc", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
+  "ice rink": { sky: ["#38bdf8", "#e0f2fe"], hill: "#7dd3fc", hill2: "#e0f2fe", field: "rgba(255,255,255,.28)" },
   gold: { sky: ["#fde047", "#fb7185"], hill: "#f59e0b", hill2: "#fbbf24", field: "rgba(255,255,255,.2)" },
   potato: { sky: ["#fdba74", "#fb7185"], hill: "#ea580c", hill2: "#fdba74", field: "rgba(255,255,255,.2)" },
   crate: { sky: ["#fef3c7", "#86efac"], hill: "#ca8a04", hill2: "#fde68a", field: "rgba(255,255,255,.3)" },
@@ -881,13 +881,17 @@ export function run(spec) {
     ctx.tickJuice(dt);
     bannerT -= dt;
     if (bannerT <= 0) document.getElementById("banner").classList.remove("on");
-    if (playing) {
-      if (!ctx.frozen() && spec.update) spec.update(ctx, dt);
-      ctx.latchPrev();
-    }
-    if (spec.draw) spec.draw(ctx, dt);
-    else if (!spec.mode) {
-      g.clearRect(0, 0, ctx.w, ctx.h);
+    try {
+      if (playing) {
+        if (!ctx.frozen() && spec.update) spec.update(ctx, dt);
+        ctx.latchPrev();
+      }
+      if (spec.draw) spec.draw(ctx, dt);
+      else if (!spec.mode) {
+        g.clearRect(0, 0, ctx.w, ctx.h);
+      }
+    } catch (err) {
+      console.warn(spec.title || "game", err);
     }
     requestAnimationFrame(tick);
   }

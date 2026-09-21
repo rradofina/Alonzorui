@@ -76,8 +76,8 @@ export const games = {
       ctx.data.worldW = W;
       ctx.data.camX = 0;
       const plats = ground(ctx, W);
-      let x = 90;
-      let y = f.y + f.h - 28 - rise;
+      let x = 20;
+      let y = f.y + f.h - 28 - 8;
       for (let i = 0; i < steps; i++) {
         plats.push(P(ctx, x, y, stepW, 26));
         x += stepW - overlap;
@@ -85,12 +85,12 @@ export const games = {
       }
       const last = plats[plats.length - 1];
       ctx.data.plats = plats;
-      ctx.data.coins = plats.slice(1).map((pl, i) => ({
+      ctx.data.coins = plats.slice(1).map((pl) => ({
         x: pl.x + pl.w * 0.55, y: pl.y - 28, live: true
       }));
       ctx.data.flag = { x: last.x + last.w * 0.72, y: last.y - 26 };
-      ctx.alon.x = 70; ctx.dad.x = 130;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 60;
+      ctx.alon.x = 70; ctx.dad.x = 140;
+      ctx.alon.y = ctx.dad.y = plats[1].y - 32;
       ctx.alon.hearts = ctx.dad.hearts = 99;
     },
     update(ctx, dt) {

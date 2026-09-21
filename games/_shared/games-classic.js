@@ -213,6 +213,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("blocks");
+        if (!ctx.data.well) return;
         const { g, field: f } = ctx;
         const bw = f.w / 2 - 24;
         drawWell(g, ctx.data.well.alon, ctx.data.piece.alon, f.x + 12, f.y + 28, bw, f.h - 40, "#fb7185");
@@ -261,6 +262,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("connect");
+        if (!ctx.data.board) return;
         const { g, field: f } = ctx;
         const bw = f.w / 2 - 20;
         paintBoard(g, ctx.data.board.alon, ctx.data.col.alon, f.x + 10, f.y + 28, bw, f.h - 40, "#fb7185");

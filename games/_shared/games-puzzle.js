@@ -313,6 +313,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("tower");
+        if (!ctx.data.blocks) return;
         const { g, field: f } = ctx;
         g.fillStyle = "rgba(12,74,110,.12)";
         g.fillRect(f.x + f.w / 2 - 4, f.y, 8, f.h);

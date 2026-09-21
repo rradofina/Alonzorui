@@ -64,6 +64,7 @@ export const games = {
     draw(ctx) {
       ctx.withShake(() => {
         ctx.drawTheme("track");
+        if (ctx.data.cx == null) return;
         const { g } = ctx;
         const { cx, cy, rx, ry } = ctx.data;
         g.strokeStyle = "#fff"; g.lineWidth = 36;

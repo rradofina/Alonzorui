@@ -7,7 +7,13 @@ async function bootThree(ctx, bg) {
     return ctx._three;
   }
   const THREE = await import(THREE_URL);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, failIfMajorPerformanceCaveat: false });
+  } catch (err) {
+    console.warn("WebGL unavailable", err);
+    return null;
+  }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
   renderer.domElement.style.cssText = "position:fixed;inset:0;z-index:1;";
@@ -77,6 +83,7 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x7dd3fc);
+      if (!t) return;
       const { THREE, camera } = t;
       if (!ctx._worldSky) {
         camera.position.set(0, 6.2, 12);
@@ -176,6 +183,7 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x38bdf8);
+      if (!t) return;
       const { THREE, camera } = t;
       if (!ctx._worldRing) {
         camera.position.set(0, 4.2, 10);
@@ -248,6 +256,7 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x134e4a);
+      if (!t) return;
       const { THREE, camera } = t;
       camera.position.set(0, 15, 11);
       if (!ctx._worldMarble) {
@@ -342,6 +351,7 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x0f172a);
+      if (!t) return;
       const { THREE, camera } = t;
       if (!ctx._worldPads) {
         camera.position.set(0, 8, 12);
