@@ -12,23 +12,35 @@
         radial-gradient(circle at 15% 0%, #38bdf8 0%, transparent 42%),
         radial-gradient(circle at 90% 18%, #f472b6 0%, transparent 38%),
         #071a2e;
-      padding: 28px 18px 48px;
+      padding: 28px 18px 64px;
     }
-    header { text-align: center; margin-bottom: 22px; }
+    header { text-align: center; margin-bottom: 18px; }
     .logo { font-size: 48px; line-height: 1; }
     h1 { font-size: clamp(36px, 9vw, 52px); letter-spacing: -1px; text-shadow: 0 5px 0 #0c4a6e; }
     h1 .r { color: #ffd166; font-size: 1.12em; text-shadow: 0 5px 0 #b45309, 0 0 18px rgba(255,209,102,.55); }
     .sub { opacity: .88; font-size: 18px; margin-top: 6px; }
     .count { margin-top: 8px; font-weight: 800; font-size: 15px; opacity: .8; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; max-width: 720px; margin: 0 auto; }
+    .tools { max-width: 920px; margin: 0 auto 18px; }
+    .search {
+      width: 100%; border: 0; border-radius: 999px; padding: 12px 18px;
+      font: 800 16px "Trebuchet MS", sans-serif; color: #0c4a6e;
+      box-shadow: 0 6px 0 rgba(0,0,0,.2);
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+    .filters button {
+      border: 0; background: #0f2a44; color: #fff; font: 800 14px "Trebuchet MS", sans-serif;
+      padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    }
+    .filters button.on { background: #ffd166; color: #3b2100; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; max-width: 920px; margin: 0 auto; }
     .card {
       display: flex; flex-direction: column; text-decoration: none; color: inherit;
       background: #0f2a44; border-radius: 28px; overflow: hidden;
       box-shadow: 0 10px 0 rgba(0,0,0,.28);
     }
     .card:active { transform: translateY(4px); box-shadow: 0 6px 0 rgba(0,0,0,.28); }
-    .art { height: 130px; display: flex; align-items: center; justify-content: center; font-size: 68px; }
-    .art.sky { background: linear-gradient(160deg, #0ea5e9, #f9a8d4 70%, #fde68a); }
+    .card.hide { display: none; }
+    .art { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 64px; }
     .meta { padding: 12px 14px 16px; }
     .name { font-size: 20px; font-weight: 800; }
     .tag { font-size: 14px; opacity: .75; margin-top: 2px; }
@@ -42,18 +54,62 @@
   <header>
     <div class="logo">🪁✨</div>
     <h1>Alonzo<span class="r">R</span>ui</h1>
-    <p class="sub">Alon's games. Tap a card to play with Dad.</p>
-    <p class="count">1 game</p>
+    <p class="sub">Alon + Dad couch games. Tap a card to play.</p>
+    <p class="count" id="count"></p>
   </header>
-  <main class="grid">
-    <a class="card" href="games/sky-buddies.html">
-      <div class="art sky">✈️</div>
-      <div class="meta">
-        <div class="name">Sky Buddies</div>
-        <div class="tag">Endless sky run · thumbs or keys</div>
-        <span class="pill">Play</span>
-      </div>
-    </a>
-  </main>
+  <div class="tools">
+    <input class="search" id="q" type="search" placeholder="Find a game" />
+    <div class="filters" id="filters"></div>
+  </div>
+  <main class="grid" id="grid"></main>
+  <script type="module">
+    import { CATALOG, VIBES } from "./games/_shared/catalog.js";
+    const grid = document.getElementById("grid");
+    const filters = document.getElementById("filters");
+    const q = document.getElementById("q");
+    const count = document.getElementById("count");
+    let vibe = "all";
+    VIBES.forEach((v) => {
+      const b = document.createElement("button");
+      b.textContent = v.label;
+      b.dataset.id = v.id;
+      if (v.id === "all") b.classList.add("on");
+      b.onclick = () => {
+        vibe = v.id;
+        [...filters.children].forEach((c) => c.classList.toggle("on", c === b));
+        paint();
+      };
+      filters.appendChild(b);
+    });
+    CATALOG.forEach((g) => {
+      const a = document.createElement("a");
+      a.className = "card";
+      a.href = `games/${g.slug}.html`;
+      a.dataset.vibe = g.vibe;
+      a.dataset.name = (g.name + " " + g.tag).toLowerCase();
+      a.innerHTML = `
+        <div class="art" style="background:${g.art}">${g.emoji}</div>
+        <div class="meta">
+          <div class="name">${g.name}</div>
+          <div class="tag">${g.tag}</div>
+          <span class="pill">Play</span>
+        </div>`;
+      grid.appendChild(a);
+    });
+    function paint() {
+      const query = q.value.trim().toLowerCase();
+      let n = 0;
+      [...grid.children].forEach((card) => {
+        const okVibe = vibe === "all" || card.dataset.vibe === vibe;
+        const okQ = !query || card.dataset.name.includes(query);
+        const show = okVibe && okQ;
+        card.classList.toggle("hide", !show);
+        if (show) n += 1;
+      });
+      count.textContent = n === CATALOG.length ? `${CATALOG.length} games` : `${n} of ${CATALOG.length} games`;
+    }
+    q.addEventListener("input", paint);
+    paint();
+  </script>
 </body>
 </html>
