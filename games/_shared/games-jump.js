@@ -185,7 +185,7 @@ export const games = {
         ctx.drawPlats(ctx.data.plats);
         (ctx.data.plats || []).forEach((pl) => { if (pl.bounce) ctx.prop("mush", pl.x + pl.w / 2, pl.y + 4, 12); });
         (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop("coin", c.x, c.y, 13); });
-        (ctx.data.haz || []).forEach((h) => ctx.prop("fruit", h.x, h.y, 12, { color: "#f9a8d4" }); });
+        (ctx.data.haz || []).forEach((h) => ctx.prop("fruit", h.x, h.y, 12, { color: "#f9a8d4" }));
         ctx.drawBuddies({ alon: "🐰", dad: "🐻" });
         ctx.drawJuice();
       });
@@ -379,7 +379,7 @@ export const games = {
       ctx.withShake(() => {
         ctx.drawTheme("sea");
         (ctx.data.pearls || []).forEach((c) => { if (c.live) ctx.prop("pearl", c.x, c.y + Math.sin(c.wob * 3) * 6, 9); });
-        (ctx.data.jellies || []).forEach((j) => ctx.prop("jelly", j.x, j.y, 16); });
+        (ctx.data.jellies || []).forEach((j) => ctx.prop("jelly", j.x, j.y, 16));
         ctx.drawBuddies({ alon: "🐠", dad: "🐡" });
         ctx.drawJuice();
       });
