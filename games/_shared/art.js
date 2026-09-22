@@ -669,7 +669,8 @@ export function paintIcon(g, x, y, emoji, color, r, t) {
 
 export function paintLabel(g, p, text) {
   g.save();
-  g.font = "800 16px Trebuchet MS, sans-serif";
+  const size = Math.max(16, Math.round((p.r || 30) * 0.38));
+  g.font = `800 ${size}px Trebuchet MS, sans-serif`;
   g.textAlign = "center";
   g.lineWidth = 4;
   g.strokeStyle = "rgba(12,74,110,.4)";

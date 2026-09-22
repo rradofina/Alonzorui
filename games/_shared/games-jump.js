@@ -35,6 +35,7 @@ function platTick(ctx, dt, opts) {
 }
 
 function drawScrollWorld(ctx, theme, extras) {
+  const r = ctx.alon.r || 42;
   ctx.withShake(() => {
     ctx.drawTheme(theme);
     ctx.g.save();
@@ -43,19 +44,20 @@ function drawScrollWorld(ctx, theme, extras) {
     ctx.g.clip();
     ctx.g.translate(-(ctx.data.camX || 0), 0);
     ctx.drawPlats(ctx.data.plats, extras.platColor);
-    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop(extras.coin || "coin", c.x, c.y, 13); });
-    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.prop(extras.haz || "veg", h.x, h.y, 14); });
+    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop(extras.coin || "coin", c.x, c.y, Math.max(16, r * 0.38)); });
+    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.prop(extras.haz || "veg", h.x, h.y, Math.max(16, r * 0.36)); });
     if (ctx.data.flag) {
       const fl = ctx.data.flag;
+      const pole = Math.max(56, r * 1.35);
       ctx.g.fillStyle = "#92400e";
-      ctx.g.fillRect(fl.x - 3, fl.y - 8, 6, 52);
+      ctx.g.fillRect(fl.x - 4, fl.y - 10, 8, pole);
       ctx.g.fillStyle = "#fbbf24";
       ctx.g.beginPath();
-      ctx.g.moveTo(fl.x + 3, fl.y - 6);
-      ctx.g.lineTo(fl.x + 38, fl.y + 8);
-      ctx.g.lineTo(fl.x + 3, fl.y + 22);
+      ctx.g.moveTo(fl.x + 4, fl.y - 8);
+      ctx.g.lineTo(fl.x + Math.max(46, r * 1.15), fl.y + r * 0.35);
+      ctx.g.lineTo(fl.x + 4, fl.y + r * 0.72);
       ctx.g.fill();
-      ctx.icon(fl.x + 8, fl.y + 6, "🏁", "#fde047", 12);
+      ctx.icon(fl.x + 10, fl.y + 8, "🏁", "#fde047", Math.max(16, r * 0.4));
     }
     const ox = ctx.data.camX || 0;
     ctx.alon.x -= ox; ctx.dad.x -= ox;
@@ -81,41 +83,49 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); ctx.data.camX = 0; },
     setupRound(ctx, n) {
       const f = ctx.field;
-      const rise = Math.min(70, f.h * 0.12);
-      const stepW = Math.max(170, f.w * 0.28);
-      const overlap = 50;
+      const r = ctx.sizeBuddies();
+      const platH = Math.max(30, Math.round(r * 0.72));
       const steps = n === 1 ? 4 : n === 2 ? 5 : 6;
-      const W = 80 + steps * (stepW - overlap) + stepW + 80;
+      const climb = f.h * (0.56 + n * 0.03);
+      const rise = Math.max(r * 1.05, climb / Math.max(1, steps));
+      const stepW = Math.max(r * 6.4, Math.min(f.w * 0.4, r * 8.2));
+      const overlap = Math.round(r * 1.7);
+      const W = Math.max(f.w + 40, 80 + steps * (stepW - overlap) + stepW);
       ctx.data.worldW = W;
       ctx.data.camX = 0;
-      const plats = ground(ctx, W);
-      let x = 20;
-      let y = f.y + f.h - 28 - 8;
+      const floorY = f.y + f.h - platH;
+      const plats = [P(ctx, 0, floorY, W, platH + 8)];
+      let x = 16;
+      let y = floorY - 6;
       for (let i = 0; i < steps; i++) {
-        plats.push(P(ctx, x, y, stepW, 26));
+        plats.push(P(ctx, x, y, stepW, platH));
         x += stepW - overlap;
         y -= rise;
       }
       const last = plats[plats.length - 1];
       ctx.data.plats = plats;
-      ctx.data.coins = plats.slice(1).map((pl) => ({
-        x: pl.x + pl.w * 0.55, y: pl.y - 28, live: true
+      ctx.data.coins = plats.slice(1, -1).map((pl) => ({
+        x: pl.x + pl.w * 0.62, y: pl.y - r * 0.7, live: true
       }));
-      ctx.data.flag = { x: last.x + last.w * 0.72, y: last.y - 26 };
-      ctx.alon.x = 70; ctx.dad.x = 140;
-      ctx.alon.y = ctx.dad.y = plats[1].y - 32;
+      ctx.data.flag = { x: last.x + last.w * 0.7, y: last.y - r * 0.15 };
+      ctx.alon.x = plats[1].x + r * 1.15;
+      ctx.dad.x = plats[1].x + r * 3.1;
+      ctx.alon.y = ctx.dad.y = plats[1].y - r;
+      ctx.alon.vy = ctx.dad.vy = 0;
+      ctx.alon._ground = ctx.dad._ground = true;
       ctx.alon.hearts = ctx.dad.hearts = 99;
     },
     update(ctx, dt) {
-      platTick(ctx, dt, {});
+      platTick(ctx, dt, { speed: 310, jump: 760 });
       followCam(ctx, dt);
+      const grab = (ctx.alon.r || 42) * 0.95;
       [ctx.alon, ctx.dad].forEach((p) => {
         ctx.data.coins.forEach((c) => {
-          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < 28) {
-            c.live = false; ctx.addScore(p, 1, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
+          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < grab) {
+            c.live = false; ctx.pickup(p, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
           }
         });
-        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < 36) ctx.winRound(p.id, "Flag hug!");
+        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < grab + 8) ctx.winRound(p.id, "Flag hug!");
       });
     },
     draw(ctx) { drawScrollWorld(ctx, "meadow", { faces: { alon: "🐥", dad: "🐧" } }); }
@@ -134,16 +144,18 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.55));
       ctx.data.need = 5 + n * 2;
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.worldW = f.w;
       ctx.data.camX = 0;
       ctx.data.plats = [
-        P(ctx, f.x, f.y + f.h - 26, f.w, 26),
-        ...[0.06, 0.36, 0.64].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.74 - i * 0.1), f.w * 0.28, 22, { bounce: true })),
-        ...[0.2, 0.5].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.48 - i * 0.08), f.w * 0.26, 22, { bounce: true }))
+        P(ctx, f.x, f.y + f.h - ph, f.w, ph + 6),
+        ...[0.06, 0.36, 0.64].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.74 - i * 0.1), f.w * 0.3, ph, { bounce: true })),
+        ...[0.2, 0.5].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.48 - i * 0.08), f.w * 0.28, ph, { bounce: true }))
       ];
-      if (n > 1) ctx.data.plats.push(P(ctx, f.x + f.w * 0.38, f.y + f.h * 0.28, f.w * 0.26, 20, { bounce: true }));
+      if (n > 1) ctx.data.plats.push(P(ctx, f.x + f.w * 0.38, f.y + f.h * 0.28, f.w * 0.28, ph, { bounce: true }));
       ctx.data.coins = ctx.data.plats.slice(1).map((pl) => ({
         x: pl.x + pl.w * 0.5, y: pl.y - 36, live: true
       }));
@@ -207,17 +219,19 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.5));
       ctx.data.need = 4 + n;
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.plats = [
-        P(ctx, f.x, f.y + f.h * 0.88, f.w * 0.4, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.44, f.y + f.h * 0.88, f.w * 0.24, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.72, f.y + f.h * 0.88, f.w * 0.28, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.08, f.y + f.h * 0.64, f.w * 0.36, 20, { ice: true }),
-        P(ctx, f.x + f.w * 0.5, f.y + f.h * 0.5, f.w * 0.36, 20, { ice: true }),
-        P(ctx, f.x + f.w * 0.2, f.y + f.h * 0.32, f.w * 0.5, 20, { ice: true })
+        P(ctx, f.x, f.y + f.h * 0.86, f.w * 0.4, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.44, f.y + f.h * 0.86, f.w * 0.24, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.72, f.y + f.h * 0.86, f.w * 0.28, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.08, f.y + f.h * 0.62, f.w * 0.36, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.5, f.y + f.h * 0.48, f.w * 0.36, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.2, f.y + f.h * 0.3, f.w * 0.5, ph, { ice: true })
       ];
-      if (n === 3) ctx.data.plats.push(P(ctx, f.x + f.w * 0.55, f.y + f.h * 0.2, f.w * 0.32, 18, { ice: true }));
+      if (n === 3) ctx.data.plats.push(P(ctx, f.x + f.w * 0.55, f.y + f.h * 0.18, f.w * 0.32, ph, { ice: true }));
       ctx.data.stars = ctx.data.plats.map((pl) => ({
         x: pl.x + pl.w * 0.5, y: pl.y - 30, live: true
       }));
@@ -275,18 +289,21 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.5));
       const count = 8 + n * 2;
-      const plats = [P(ctx, f.x, f.y + f.h - 24, f.w, 24)];
+      const plats = [P(ctx, f.x, f.y + f.h - ph, f.w, ph + 6)];
+      const gap = Math.max(r * 1.35, f.h * 0.09);
       for (let i = 0; i < count; i++) {
         plats.push(P(ctx, f.x + (i % 2 ? 0.08 : 0.42) * f.w,
-          f.y + f.h - 64 - i * 40, f.w * 0.48, 20));
+          f.y + f.h - ph - 20 - i * gap, f.w * 0.5, ph));
       }
       ctx.data.plats = plats;
       ctx.data.cam = 0;
-      ctx.data.top = plats[plats.length - 1].y - 28;
+      ctx.data.top = plats[plats.length - 1].y - r;
       ctx.data.wind = n === 3 ? 12 : n === 2 ? 6 : 0;
-      ctx.alon.x = f.x + 70; ctx.dad.x = f.x + 140;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 56;
+      ctx.alon.x = f.x + r * 1.4; ctx.dad.x = f.x + r * 3.2;
+      ctx.alon.y = ctx.dad.y = plats[0].y - r;
     },
     update(ctx, dt) {
       const best = Math.min(ctx.alon.y, ctx.dad.y);
@@ -409,8 +426,9 @@ export const games = {
       ctx.data.ate = new Set();
       ctx.data.finish = 1200 + n * 400;
       ctx.data.dist = { alon: 0, dad: 0 };
+      const r = ctx.sizeBuddies();
       ctx.alon.x = f.x + f.w * 0.3; ctx.dad.x = f.x + f.w * 0.62;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 70;
+      ctx.alon.y = ctx.dad.y = f.y + f.h - Math.max(70, r * 1.35);
     },
     update(ctx, dt) {
       ctx.data.scroll += ctx.data.speed * dt;

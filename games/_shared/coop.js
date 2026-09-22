@@ -275,10 +275,29 @@ export function run(spec) {
     matchScore: { alon: 0, dad: 0 },
     padReserve() {
       const coarse = matchMedia("(pointer: coarse), (max-width: 900px)").matches;
-      if (!coarse) return 28;
+      if (!coarse) return 52;
       const landscape = innerWidth > innerHeight;
       const pad = landscape ? Math.min(innerHeight * 0.28, 168) : Math.min(innerWidth * 0.40, 184);
       return pad + 52;
+    },
+    buddySize() {
+      const f = ctx.field;
+      const short = Math.min(f.w, f.h);
+      return ctx.clamp(Math.round(short * 0.17), 42, 60);
+    },
+    sizeBuddies() {
+      const r = ctx.buddySize();
+      ctx.alon.r = ctx.dad.r = r;
+      return r;
+    },
+    needWins() {
+      return Math.ceil((ctx.maxRounds || spec.rounds || 3) / 2);
+    },
+    matchHud() {
+      return !!(spec.rounds && spec.rounds > 1);
+    },
+    setRoundGoal(n) {
+      ctx.setGoal(`R${n} · first to ${ctx.needWins()}`);
     },
     resize() {
       const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -287,13 +306,15 @@ export function run(spec) {
       canvas.width = ctx.w * dpr;
       canvas.height = ctx.h * dpr;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const top = innerWidth < 720 ? 118 : 78;
+      const landscape = innerWidth > innerHeight;
+      const top = innerWidth < 720 ? (landscape ? 72 : 118) : 78;
       ctx.field = {
         x: 16,
         y: top,
         w: ctx.w - 32,
-        h: ctx.h - top - ctx.padReserve() - 8
+        h: Math.max(160, ctx.h - top - ctx.padReserve() - 8)
       };
+      if (ctx.playing) ctx.sizeBuddies();
     },
     input(who) {
       const map = KEYMAP[who];
@@ -484,6 +505,9 @@ export function run(spec) {
       ctx.float(p.x, p.y - p.r - 8, label || ("+" + n), p.color);
       ctx.paint();
     },
+    pickup(p, label) {
+      ctx.float(p.x, p.y - p.r - 8, label || "+", p.color);
+    },
     float(x, y, text, color) {
       ctx.floaters.push({ x, y, text, color: color || "#fff", life: 1.05, vy: -64 });
     },
@@ -523,21 +547,24 @@ export function run(spec) {
     async startRound(n, title) {
       ctx.round = n;
       ctx.freeze = 2.4;
+      ctx.sizeBuddies();
       if (spec.setupRound) await spec.setupRound(ctx, n);
-      ctx.setGoal(`R${n}/${ctx.maxRounds}`);
+      ctx.setRoundGoal(n);
+      ctx.paint();
       ctx.countIn(title || `Round ${n}`);
     },
     winRound(who, text) {
       if (ctx.frozen() || !ctx.playing) return;
       ctx.roundWins[who] = (ctx.roundWins[who] || 0) + 1;
       const p = who === "alon" ? ctx.alon : ctx.dad;
-      ctx.addScore(p, 1, "ROUND!");
+      ctx.float(p.x, p.y - p.r - 8, "ROUND!", p.color);
+      ctx.paint();
       ctx.punch(0.4);
       ctx.goalHorn();
       ctx.burst(p.x, p.y, p.color, 36);
       ctx.banner(`${p.name} takes round ${ctx.round}!`, 900);
       ctx.freeze = 1.35;
-      const need = Math.ceil(ctx.maxRounds / 2);
+      const need = ctx.needWins();
       ctx.later(1300, () => {
         if (ctx.roundWins[who] >= need || ctx.round >= ctx.maxRounds) {
           const a = ctx.roundWins.alon, d = ctx.roundWins.dad;
@@ -607,8 +634,10 @@ export function run(spec) {
       return true;
     },
     paint() {
-      document.getElementById("alonScore").textContent = String(alon.score | 0);
-      document.getElementById("dadScore").textContent = String(dad.score | 0);
+      const aPts = ctx.matchHud() ? (ctx.roundWins.alon | 0) : (alon.score | 0);
+      const dPts = ctx.matchHud() ? (ctx.roundWins.dad | 0) : (dad.score | 0);
+      document.getElementById("alonScore").textContent = String(aPts);
+      document.getElementById("dadScore").textContent = String(dPts);
       const hearts = (p, id) => {
         const el = document.getElementById(id);
         if (spec.hearts === false) { el.textContent = ""; return; }
@@ -678,8 +707,8 @@ export function run(spec) {
       fanfare();
       document.getElementById("pads").classList.add("off");
       document.getElementById("hints").classList.add("off");
-      document.getElementById("winAlon").textContent = String(alon.score | 0);
-      document.getElementById("winDad").textContent = String(dad.score | 0);
+      document.getElementById("winAlon").textContent = String(ctx.matchHud() ? (ctx.roundWins.alon | 0) : (alon.score | 0));
+      document.getElementById("winDad").textContent = String(ctx.matchHud() ? (ctx.roundWins.dad | 0) : (dad.score | 0));
       const names = { alon: "Alon", dad: "Dad", tie: "Both", coop: "Team" };
       document.getElementById("winTitle").textContent = title || (
         who === "tie" ? "It's a tie!" : who === "coop" ? "Team win!" : `${names[who]} wins!`
@@ -718,7 +747,7 @@ export function run(spec) {
       p.inv = 0;
       p.out = false;
       p.vx = 0; p.vy = 0;
-      p.r = spec.radius || 30;
+      p.r = spec.radius || ctx.buddySize();
       p.squish = 1;
       p.x = f.x + f.w * (i ? 0.72 : 0.28);
       p.y = f.y + f.h * 0.62;
@@ -754,8 +783,10 @@ export function run(spec) {
         ctx.paint();
         playing = true;
         ctx.playing = true;
+        ctx.sizeBuddies();
         if (spec.setupRound) await spec.setupRound(ctx, 1);
-        ctx.setGoal(`R1/${ctx.maxRounds}`);
+        ctx.setRoundGoal(1);
+        ctx.paint();
         ctx.countIn(spec.roundNames ? spec.roundNames[0] : "Round 1");
       } finally {
         ctx.starting = false;
