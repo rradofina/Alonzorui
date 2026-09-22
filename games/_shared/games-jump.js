@@ -136,10 +136,12 @@ export const games = {
           }
         });
         if (!fl) return;
-        const pole = Math.abs(p.x - fl.x) < p.r + 40 && p.y + p.r > fl.y - Math.max(90, r * 1.8);
-        const onLast = last && p.x > last.x - 12 && p.x < last.x + last.w + 12
-          && p.y + p.r >= last.y - 22 && p.y < last.y + (last.h || 28) + p.r;
-        if (pole || onLast) ctx.winRound(p.id, "Flag hug!");
+        const hug = ctx.dist(p.x, p.y, fl.x, fl.y) < p.r + 30;
+        const pole = Math.abs(p.x - fl.x) < Math.max(26, p.r * 0.55)
+          && p.y < fl.y + p.r && p.y + p.r > fl.y - Math.max(110, r * 1.5);
+        const onLast = last && p.x > last.x - 6 && p.x < last.x + last.w + 6
+          && p.y + p.r >= last.y - 16 && p.y + p.r <= last.y + Math.max(40, (last.h || 28) + 20);
+        if (hug || pole || onLast) ctx.winRound(p.id, "Flag hug!");
       });
     },
     draw(ctx) {
