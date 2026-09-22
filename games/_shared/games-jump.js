@@ -9,11 +9,15 @@ function ground(ctx, worldW) {
 
 function followCam(ctx, dt) {
   const f = ctx.field;
-  const left = Math.min(ctx.alon.x, ctx.dad.x);
-  const right = Math.max(ctx.alon.x, ctx.dad.x);
+  const pad = (ctx.alon.r || 42) * 2.2;
+  const left = Math.min(ctx.alon.x, ctx.dad.x) - pad;
+  const right = Math.max(ctx.alon.x, ctx.dad.x) + pad;
   const mid = (left + right) * 0.5;
-  const want = ctx.clamp(mid - f.w * 0.5, 0, Math.max(0, ctx.data.worldW - f.w));
-  ctx.data.camX += (want - (ctx.data.camX || 0)) * Math.min(1, 6 * dt);
+  const want = ctx.clamp(mid - f.w * 0.5, 0, Math.max(0, (ctx.data.worldW || f.w) - f.w));
+  const cur = ctx.data.camX || 0;
+  const gap = Math.abs(want - cur);
+  if (gap > 280) ctx.data.camX = want;
+  else ctx.data.camX = cur + (want - cur) * Math.min(1, (gap > 120 ? 12 : 6) * dt);
 }
 
 function toScreen(ctx, x) { return x - (ctx.data.camX || 0); }
@@ -24,10 +28,14 @@ function platTick(ctx, dt, opts) {
     ctx.movePlatform(p, grav, dt);
     ctx.landOn(p, ctx.data.plats);
     p.x = ctx.clamp(p.x, p.r, ctx.data.worldW - p.r);
-    if (p.y > ctx.field.y + ctx.field.h + 40) {
-      p.x = 80 + (p.id === "dad" ? 50 : 0);
-      p.y = ctx.field.y + 40;
+    if (p.y > ctx.field.y + ctx.field.h + 20) {
+      const home = (ctx.data.plats || [])[1] || (ctx.data.plats || [])[0];
+      p.x = (home ? home.x + p.r * 1.4 : 80) + (p.id === "dad" ? p.r * 2.2 : 0);
+      p.y = home ? home.y - p.r : ctx.field.y + ctx.field.h * 0.5;
       p.vy = 0;
+      p.vx = 0;
+      p._ground = true;
+      ctx.data.camX = ctx.clamp(p.x - ctx.field.w * 0.35, 0, Math.max(0, (ctx.data.worldW || ctx.field.w) - ctx.field.w));
       ctx.hurt(p);
       ctx.punch(0.25);
     }
@@ -35,6 +43,7 @@ function platTick(ctx, dt, opts) {
 }
 
 function drawScrollWorld(ctx, theme, extras) {
+  const r = ctx.alon.r || 42;
   ctx.withShake(() => {
     ctx.drawTheme(theme);
     ctx.g.save();
@@ -43,25 +52,27 @@ function drawScrollWorld(ctx, theme, extras) {
     ctx.g.clip();
     ctx.g.translate(-(ctx.data.camX || 0), 0);
     ctx.drawPlats(ctx.data.plats, extras.platColor);
-    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop(extras.coin || "coin", c.x, c.y, 13); });
-    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.prop(extras.haz || "veg", h.x, h.y, 14); });
+    (ctx.data.coins || []).forEach((c) => { if (c.live) ctx.prop(extras.coin || "coin", c.x, c.y, Math.max(16, r * 0.38)); });
+    (ctx.data.haz || []).forEach((h) => { if (h.live !== false) ctx.prop(extras.haz || "veg", h.x, h.y, Math.max(16, r * 0.36)); });
     if (ctx.data.flag) {
       const fl = ctx.data.flag;
+      const pole = Math.max(56, r * 1.35);
       ctx.g.fillStyle = "#92400e";
-      ctx.g.fillRect(fl.x - 3, fl.y - 8, 6, 52);
+      ctx.g.fillRect(fl.x - 4, fl.y - 10, 8, pole);
       ctx.g.fillStyle = "#fbbf24";
       ctx.g.beginPath();
-      ctx.g.moveTo(fl.x + 3, fl.y - 6);
-      ctx.g.lineTo(fl.x + 38, fl.y + 8);
-      ctx.g.lineTo(fl.x + 3, fl.y + 22);
+      ctx.g.moveTo(fl.x + 4, fl.y - 8);
+      ctx.g.lineTo(fl.x + Math.max(46, r * 1.15), fl.y + r * 0.35);
+      ctx.g.lineTo(fl.x + 4, fl.y + r * 0.72);
       ctx.g.fill();
-      ctx.icon(fl.x + 8, fl.y + 6, "🏁", "#fde047", 12);
+      ctx.icon(fl.x + 10, fl.y + 8, "🏁", "#fde047", Math.max(16, r * 0.4));
     }
     const ox = ctx.data.camX || 0;
     ctx.alon.x -= ox; ctx.dad.x -= ox;
     ctx.drawBuddies(extras.faces);
-    ctx.alon.x += ox; ctx.dad.x += ox;
     ctx.g.restore();
+    ctx.drawBuddies(extras.faces);
+    ctx.alon.x += ox; ctx.dad.x += ox;
     ctx.drawJuice();
   });
 }
@@ -81,44 +92,83 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); ctx.data.camX = 0; },
     setupRound(ctx, n) {
       const f = ctx.field;
-      const rise = Math.min(70, f.h * 0.12);
-      const stepW = Math.max(170, f.w * 0.28);
-      const overlap = 50;
-      const steps = n === 1 ? 4 : n === 2 ? 5 : 6;
-      const W = 80 + steps * (stepW - overlap) + stepW + 80;
-      ctx.data.worldW = W;
+      const r = ctx.sizeBuddies();
+      const platH = Math.max(30, Math.round(r * 0.7));
+      const steps = f.h < 340 ? 3 : n === 1 ? 4 : 5;
+      ctx.data.worldW = f.x + f.w;
       ctx.data.camX = 0;
-      const plats = ground(ctx, W);
-      let x = 20;
-      let y = f.y + f.h - 28 - 8;
+      const left = f.x + 10;
+      const right = f.x + f.w - 10;
+      const floorY = f.y + f.h - platH;
+      const topY = f.y + Math.max(r * 1.7, f.h * 0.16);
+      const rise = Math.min(r * 2.05, (floorY - platH - topY) / Math.max(1, steps - 1));
+      const homeW = Math.max(r * 4.2, Math.min((right - left) * (f.w < 520 ? 0.72 : 0.36), r * 6.6));
+      const stepW = Math.min((right - left) * (f.w < 520 ? 0.42 : 0.3), r * 5.4);
+      const plats = [P(ctx, f.x, floorY, f.w, platH + 10)];
       for (let i = 0; i < steps; i++) {
-        plats.push(P(ctx, x, y, stepW, 26));
-        x += stepW - overlap;
-        y -= rise;
+        const t = steps === 1 ? 0 : i / (steps - 1);
+        const w = i === 0 ? homeW : stepW;
+        const x = left + t * (right - left - w);
+        const y = floorY - 8 - i * rise;
+        plats.push(P(ctx, x, y, w, platH));
       }
       const last = plats[plats.length - 1];
       ctx.data.plats = plats;
-      ctx.data.coins = plats.slice(1).map((pl) => ({
-        x: pl.x + pl.w * 0.55, y: pl.y - 28, live: true
+      ctx.data.coins = plats.slice(1, -1).map((pl) => ({
+        x: pl.x + pl.w * 0.62, y: pl.y - r * 0.7, live: true
       }));
-      ctx.data.flag = { x: last.x + last.w * 0.72, y: last.y - 26 };
-      ctx.alon.x = 70; ctx.dad.x = 140;
-      ctx.alon.y = ctx.dad.y = plats[1].y - 32;
+      ctx.data.flag = { x: last.x + last.w * 0.72, y: last.y - r * 0.08 };
+      ctx.parkTogether();
       ctx.alon.hearts = ctx.dad.hearts = 99;
     },
     update(ctx, dt) {
-      platTick(ctx, dt, {});
-      followCam(ctx, dt);
+      const jump = ctx.field.h < 360 ? 580 : 740;
+      platTick(ctx, dt, { speed: 300, jump });
+      ctx.data.camX = 0;
+      const r = ctx.alon.r || 42;
+      const last = (ctx.data.plats || [])[(ctx.data.plats || []).length - 1];
+      const fl = ctx.data.flag;
       [ctx.alon, ctx.dad].forEach((p) => {
+        p.x = ctx.clamp(p.x, ctx.field.x + p.r * 0.4, ctx.field.x + ctx.field.w - p.r * 0.4);
         ctx.data.coins.forEach((c) => {
-          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < 28) {
-            c.live = false; ctx.addScore(p, 1, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
+          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < p.r * 0.85) {
+            c.live = false; ctx.pickup(p, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
           }
         });
-        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < 36) ctx.winRound(p.id, "Flag hug!");
+        if (!fl) return;
+        const hug = ctx.dist(p.x, p.y, fl.x, fl.y) < p.r + 30;
+        const pole = Math.abs(p.x - fl.x) < Math.max(26, p.r * 0.55)
+          && p.y < fl.y + p.r && p.y + p.r > fl.y - Math.max(110, r * 1.5);
+        const onLast = last && p.x > last.x - 6 && p.x < last.x + last.w + 6
+          && p.y + p.r >= last.y - 16 && p.y + p.r <= last.y + Math.max(40, (last.h || 28) + 20);
+        if (hug || pole || onLast) ctx.winRound(p.id, "Flag hug!");
       });
     },
-    draw(ctx) { drawScrollWorld(ctx, "meadow", { faces: { alon: "🐥", dad: "🐧" } }); }
+    draw(ctx) {
+      const r = ctx.alon.r || 42;
+      ctx.withShake(() => {
+        ctx.drawTheme("meadow");
+        ctx.drawPlats(ctx.data.plats);
+        (ctx.data.coins || []).forEach((c) => {
+          if (c.live) ctx.prop("coin", c.x, c.y, Math.max(18, r * 0.42));
+        });
+        const fl = ctx.data.flag;
+        if (fl) {
+          const pole = Math.max(64, r * 1.45);
+          ctx.g.fillStyle = "#92400e";
+          ctx.g.fillRect(fl.x - 5, fl.y - 12, 10, pole);
+          ctx.g.fillStyle = "#fbbf24";
+          ctx.g.beginPath();
+          ctx.g.moveTo(fl.x + 5, fl.y - 10);
+          ctx.g.lineTo(fl.x + Math.max(52, r * 1.25), fl.y + r * 0.38);
+          ctx.g.lineTo(fl.x + 5, fl.y + r * 0.78);
+          ctx.g.fill();
+          ctx.icon(fl.x + 12, fl.y + 10, "🏁", "#fde047", Math.max(18, r * 0.42));
+        }
+        ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+        ctx.drawJuice();
+      });
+    }
   },
 
   "bounce-caps": {
@@ -134,16 +184,18 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.55));
       ctx.data.need = 5 + n * 2;
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.worldW = f.w;
       ctx.data.camX = 0;
       ctx.data.plats = [
-        P(ctx, f.x, f.y + f.h - 26, f.w, 26),
-        ...[0.06, 0.36, 0.64].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.74 - i * 0.1), f.w * 0.28, 22, { bounce: true })),
-        ...[0.2, 0.5].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.48 - i * 0.08), f.w * 0.26, 22, { bounce: true }))
+        P(ctx, f.x, f.y + f.h - ph, f.w, ph + 6),
+        ...[0.06, 0.36, 0.64].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.74 - i * 0.1), f.w * 0.3, ph, { bounce: true })),
+        ...[0.2, 0.5].map((nx, i) => P(ctx, f.x + f.w * nx, f.y + f.h * (0.48 - i * 0.08), f.w * 0.28, ph, { bounce: true }))
       ];
-      if (n > 1) ctx.data.plats.push(P(ctx, f.x + f.w * 0.38, f.y + f.h * 0.28, f.w * 0.26, 20, { bounce: true }));
+      if (n > 1) ctx.data.plats.push(P(ctx, f.x + f.w * 0.38, f.y + f.h * 0.28, f.w * 0.28, ph, { bounce: true }));
       ctx.data.coins = ctx.data.plats.slice(1).map((pl) => ({
         x: pl.x + pl.w * 0.5, y: pl.y - 36, live: true
       }));
@@ -207,17 +259,19 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.5));
       ctx.data.need = 4 + n;
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.plats = [
-        P(ctx, f.x, f.y + f.h * 0.88, f.w * 0.4, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.44, f.y + f.h * 0.88, f.w * 0.24, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.72, f.y + f.h * 0.88, f.w * 0.28, 24, { ice: true }),
-        P(ctx, f.x + f.w * 0.08, f.y + f.h * 0.64, f.w * 0.36, 20, { ice: true }),
-        P(ctx, f.x + f.w * 0.5, f.y + f.h * 0.5, f.w * 0.36, 20, { ice: true }),
-        P(ctx, f.x + f.w * 0.2, f.y + f.h * 0.32, f.w * 0.5, 20, { ice: true })
+        P(ctx, f.x, f.y + f.h * 0.86, f.w * 0.4, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.44, f.y + f.h * 0.86, f.w * 0.24, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.72, f.y + f.h * 0.86, f.w * 0.28, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.08, f.y + f.h * 0.62, f.w * 0.36, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.5, f.y + f.h * 0.48, f.w * 0.36, ph, { ice: true }),
+        P(ctx, f.x + f.w * 0.2, f.y + f.h * 0.3, f.w * 0.5, ph, { ice: true })
       ];
-      if (n === 3) ctx.data.plats.push(P(ctx, f.x + f.w * 0.55, f.y + f.h * 0.2, f.w * 0.32, 18, { ice: true }));
+      if (n === 3) ctx.data.plats.push(P(ctx, f.x + f.w * 0.55, f.y + f.h * 0.18, f.w * 0.32, ph, { ice: true }));
       ctx.data.stars = ctx.data.plats.map((pl) => ({
         x: pl.x + pl.w * 0.5, y: pl.y - 30, live: true
       }));
@@ -275,18 +329,21 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     setupRound(ctx, n) {
       const f = ctx.field;
+      const r = ctx.sizeBuddies();
+      const ph = Math.max(26, Math.round(r * 0.5));
       const count = 8 + n * 2;
-      const plats = [P(ctx, f.x, f.y + f.h - 24, f.w, 24)];
+      const plats = [P(ctx, f.x, f.y + f.h - ph, f.w, ph + 6)];
+      const gap = Math.max(r * 1.35, f.h * 0.09);
       for (let i = 0; i < count; i++) {
         plats.push(P(ctx, f.x + (i % 2 ? 0.08 : 0.42) * f.w,
-          f.y + f.h - 64 - i * 40, f.w * 0.48, 20));
+          f.y + f.h - ph - 20 - i * gap, f.w * 0.5, ph));
       }
       ctx.data.plats = plats;
       ctx.data.cam = 0;
-      ctx.data.top = plats[plats.length - 1].y - 28;
+      ctx.data.top = plats[plats.length - 1].y - r;
       ctx.data.wind = n === 3 ? 12 : n === 2 ? 6 : 0;
-      ctx.alon.x = f.x + 70; ctx.dad.x = f.x + 140;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 56;
+      ctx.alon.x = f.x + r * 1.4; ctx.dad.x = f.x + r * 3.2;
+      ctx.alon.y = ctx.dad.y = plats[0].y - r;
     },
     update(ctx, dt) {
       const best = Math.min(ctx.alon.y, ctx.dad.y);
@@ -409,8 +466,9 @@ export const games = {
       ctx.data.ate = new Set();
       ctx.data.finish = 1200 + n * 400;
       ctx.data.dist = { alon: 0, dad: 0 };
+      const r = ctx.sizeBuddies();
       ctx.alon.x = f.x + f.w * 0.3; ctx.dad.x = f.x + f.w * 0.62;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 70;
+      ctx.alon.y = ctx.dad.y = f.y + f.h - Math.max(70, r * 1.35);
     },
     update(ctx, dt) {
       ctx.data.scroll += ctx.data.speed * dt;
