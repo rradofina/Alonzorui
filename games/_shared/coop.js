@@ -544,9 +544,9 @@ export function run(spec) {
       const home = (ctx.data.plats || [])[1] || (ctx.data.plats || [])[0];
       const r = ctx.alon.r || ctx.buddySize();
       if (home) {
-        const inset = Math.min(r * 1.05, home.w * 0.22);
-        const left = home.x + inset;
-        const right = home.x + home.w - inset;
+        const inset = Math.min(r * 0.95, home.w * 0.2);
+        const left = Math.max(ctx.field.x + r * 0.85, home.x + inset);
+        const right = Math.min(ctx.field.x + ctx.field.w - r * 0.85, home.x + home.w - inset);
         const gap = Math.min(r * 2.15, Math.max(r * 1.55, (right - left) * 0.5));
         ctx.alon.x = left;
         ctx.dad.x = Math.min(right, left + gap);

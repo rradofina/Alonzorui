@@ -102,8 +102,8 @@ export const games = {
       const floorY = f.y + f.h - platH;
       const topY = f.y + Math.max(r * 1.7, f.h * 0.16);
       const rise = Math.min(r * 2.05, (floorY - platH - topY) / Math.max(1, steps - 1));
-      const homeW = Math.min((right - left) * 0.36, r * 6.6);
-      const stepW = Math.min((right - left) * 0.3, r * 5.4);
+      const homeW = Math.max(r * 4.2, Math.min((right - left) * (f.w < 520 ? 0.72 : 0.36), r * 6.6));
+      const stepW = Math.min((right - left) * (f.w < 520 ? 0.42 : 0.3), r * 5.4);
       const plats = [P(ctx, f.x, floorY, f.w, platH + 10)];
       for (let i = 0; i < steps; i++) {
         const t = steps === 1 ? 0 : i / (steps - 1);
