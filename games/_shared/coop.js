@@ -118,7 +118,7 @@ function injectShell(spec) {
         <span class="chip alon"><span class="for-keys">Alon: WASD</span><span class="for-touch">Alon: left pad</span></span>
         <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
       </div>
-      <button class="play" id="go">Play</button>
+      <button class="play" id="go" type="button">Play</button>
       <a class="home-btn" href="../index.html">Home</a>
     </div>
     <div class="cover off" id="win">
@@ -131,7 +131,7 @@ function injectShell(spec) {
         <div class="box alon">Alon<div class="n" id="winAlon">0</div></div>
         <div class="box dad">Dad<div class="n" id="winDad">0</div></div>
       </div>
-      <button class="play" id="again">Play again</button>
+      <button class="play" id="again" type="button">Play again</button>
       <a class="home-btn" href="../index.html">Home</a>
     </div>
   `);
@@ -265,7 +265,7 @@ export function run(spec) {
     spec, canvas, g, keys, pads,
     alon, dad, sparks,
     w: 0, h: 0, field: { x: 0, y: 0, w: 0, h: 0 },
-    t: 0, now: 0, playing: false,
+    t: 0, now: 0, playing: false, bootGen: 0, starting: false,
     beep, chime, starChime, bump, fanfare, pop, whoosh, thud, goalHorn,
     clamp, dist, aabb, circleHit,
     data: {},
@@ -277,7 +277,8 @@ export function run(spec) {
       const coarse = matchMedia("(pointer: coarse), (max-width: 900px)").matches;
       if (!coarse) return 28;
       const landscape = innerWidth > innerHeight;
-      return (landscape ? Math.min(innerHeight * 0.28, 168) : Math.min(innerWidth * 0.44, 200)) + 36;
+      const pad = landscape ? Math.min(innerHeight * 0.28, 168) : Math.min(innerWidth * 0.40, 184);
+      return pad + 52;
     },
     resize() {
       const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -488,6 +489,9 @@ export function run(spec) {
     },
     punch(n) { ctx.shake = Math.max(ctx.shake, n || 0.28); },
     frozen() { return ctx.freeze > 0; },
+    standY(lift) {
+      return ctx.field.y + ctx.field.h - (lift == null ? 56 : lift);
+    },
     place(alonN, dadN, yN) {
       const f = ctx.field;
       ctx.alon.x = f.x + f.w * (alonN == null ? 0.22 : alonN);
@@ -503,14 +507,18 @@ export function run(spec) {
       ctx.floaters = [];
       ctx.shake = 0;
     },
+    later(ms, fn) {
+      const gen = ctx.bootGen;
+      setTimeout(() => { if (ctx.bootGen === gen && ctx.playing) fn(); }, ms);
+    },
     countIn(roundName) {
       ctx.freeze = 2.35;
       const label = roundName || `Round ${ctx.round}`;
       ctx.banner(label, 700);
-      setTimeout(() => { if (ctx.playing) { ctx.banner("3", 350); beep(392, 0.08, "square", 0.07); } }, 750);
-      setTimeout(() => { if (ctx.playing) { ctx.banner("2", 350); beep(440, 0.08, "square", 0.07); } }, 1150);
-      setTimeout(() => { if (ctx.playing) { ctx.banner("1", 350); beep(523, 0.08, "square", 0.07); } }, 1550);
-      setTimeout(() => { if (ctx.playing) { ctx.banner("GO!", 400); pop(); ctx.freeze = 0; } }, 1950);
+      ctx.later(750, () => { ctx.banner("3", 350); beep(392, 0.08, "square", 0.07); });
+      ctx.later(1150, () => { ctx.banner("2", 350); beep(440, 0.08, "square", 0.07); });
+      ctx.later(1550, () => { ctx.banner("1", 350); beep(523, 0.08, "square", 0.07); });
+      ctx.later(1950, () => { ctx.banner("GO!", 400); pop(); ctx.freeze = 0; });
     },
     async startRound(n, title) {
       ctx.round = n;
@@ -530,8 +538,7 @@ export function run(spec) {
       ctx.banner(`${p.name} takes round ${ctx.round}!`, 900);
       ctx.freeze = 1.35;
       const need = Math.ceil(ctx.maxRounds / 2);
-      setTimeout(() => {
-        if (!ctx.playing) return;
+      ctx.later(1300, () => {
         if (ctx.roundWins[who] >= need || ctx.round >= ctx.maxRounds) {
           const a = ctx.roundWins.alon, d = ctx.roundWins.dad;
           const w = a === d ? "tie" : a > d ? "alon" : "dad";
@@ -540,7 +547,7 @@ export function run(spec) {
         } else {
           ctx.startRound(ctx.round + 1);
         }
-      }, 1300);
+      });
     },
     closeWaves(text) {
       const a = ctx.alon.score, d = ctx.dad.score;
@@ -551,7 +558,7 @@ export function run(spec) {
       ctx.freeze = 1.1;
       ctx.banner(`Wave ${ctx.round} clear!`, 800);
       ctx.starChime();
-      setTimeout(() => { if (ctx.playing) ctx.startRound(ctx.round + 1); }, 1000);
+      ctx.later(1000, () => ctx.startRound(ctx.round + 1));
     },
     drawTheme(name) {
       paintWorld(g, ctx, name);
@@ -733,19 +740,26 @@ export function run(spec) {
   }
 
   async function startGame() {
-      ctx.resize();
-      resetPlayers();
-      ctx.resetMatch();
-      ctx.t = 0;
-      showPlayChrome();
-      if (spec.setup) await spec.setup(ctx);
-      ctx.maxRounds = spec.rounds || 3;
-      ctx.paint();
-      playing = true;
-      ctx.playing = true;
-      if (spec.setupRound) await spec.setupRound(ctx, 1);
-      ctx.setGoal(`R1/${ctx.maxRounds}`);
-      ctx.countIn(spec.roundNames ? spec.roundNames[0] : "Round 1");
+      if (ctx.starting) return;
+      ctx.starting = true;
+      ctx.bootGen = (ctx.bootGen || 0) + 1;
+      try {
+        ctx.resize();
+        resetPlayers();
+        ctx.resetMatch();
+        ctx.t = 0;
+        showPlayChrome();
+        if (spec.setup) await spec.setup(ctx);
+        ctx.maxRounds = spec.rounds || 3;
+        ctx.paint();
+        playing = true;
+        ctx.playing = true;
+        if (spec.setupRound) await spec.setupRound(ctx, 1);
+        ctx.setGoal(`R1/${ctx.maxRounds}`);
+        ctx.countIn(spec.roundNames ? spec.roundNames[0] : "Round 1");
+      } finally {
+        ctx.starting = false;
+      }
     }
 
   function tick(now) {
@@ -759,7 +773,7 @@ export function run(spec) {
     try {
       if (playing) {
         if (!ctx.frozen() && spec.update) spec.update(ctx, dt);
-        ctx.latchPrev();
+        if (!ctx.frozen()) ctx.latchPrev();
       }
       if (spec.draw) spec.draw(ctx, dt);
       else if (!spec.mode) {

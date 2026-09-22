@@ -6,7 +6,7 @@ export const THEMES = {
   sea: { sky: ["#67e8f9", "#0369a1"], hill: "#0ea5e9", hill2: "#22d3ee", field: "#0ea5e9", floor: "water", dress: "reef", sun: "#fde047" },
   jungle: { sky: ["#fde68a", "#86efac"], hill: "#22c55e", hill2: "#4ade80", field: "#86efac", floor: "grass", dress: "vines", sun: "#facc15" },
   night: { sky: ["#1e1b4b", "#312e81"], hill: "#312e81", hill2: "#1e1b4b", field: "#1e1b4b", floor: "stars", dress: "moon", sun: "#f8fafc" },
-  paint: { sky: ["#fdf4ff", "#e0f2fe"], hill: "#c4b5fd", hill2: "#f9a8d4", field: "#f5d0fe", floor: "splats", dress: "drips", sun: "#a78bfa" },
+  paint: { sky: ["#fda4af", "#7dd3fc"], hill: "#fb7185", hill2: "#38bdf8", field: "#f5d0fe", floor: "splats", dress: "drips", sun: "#facc15" },
   party: { sky: ["#fce7f3", "#fde68a"], hill: "#f472b6", hill2: "#fbbf24", field: "#fbcfe8", floor: "confetti", dress: "balloons", sun: "#f472b6" },
   track: { sky: ["#fdba74", "#facc15"], hill: "#f97316", hill2: "#fde68a", field: "#fed7aa", floor: "asphalt", dress: "crowd", sun: "#facc15" },
   snow: { sky: ["#e0f2fe", "#93c5fd"], hill: "#fff", hill2: "#dbeafe", field: "#f8fafc", floor: "snow", dress: "pines", sun: "#fff" },
@@ -21,7 +21,7 @@ export const THEMES = {
   bright: { sky: ["#fff7ed", "#bae6fd"], hill: "#fdba74", hill2: "#fde68a", field: "#ffedd5", floor: "playground", dress: "toys", sun: "#fbbf24" },
   cards: { sky: ["#f3e8ff", "#fde68a"], hill: "#a78bfa", hill2: "#ddd6fe", field: "#5b21b6", floor: "felt", dress: "table", sun: "#a78bfa" },
   tower: { sky: ["#fff7ed", "#fdba74"], hill: "#fb923c", hill2: "#fde68a", field: "#ffedd5", floor: "brick", dress: "skyline", sun: "#fb923c" },
-  pillow: { sky: ["#fbcfe8", "#c4b5fd"], hill: "#f9a8d4", hill2: "#e9d5ff", field: "#fce7f3", floor: "soft", dress: "cloudbed", sun: "#f9a8d4" },
+  pillow: { sky: ["#f472b6", "#818cf8"], hill: "#ec4899", hill2: "#c084fc", field: "#fbcfe8", floor: "soft", dress: "cloudbed", sun: "#fde047" },
   frost: { sky: ["#e0f2fe", "#38bdf8"], hill: "#fff", hill2: "#bae6fd", field: "#e0f2fe", floor: "snow", dress: "pines", sun: "#fff" },
   sumo: { sky: ["#fde68a", "#f97316"], hill: "#fb923c", hill2: "#fde047", field: "#ffedd5", floor: "dojo", dress: "lanterns", sun: "#facc15" },
   coins: { sky: ["#facc15", "#fb923c"], hill: "#f59e0b", hill2: "#fde68a", field: "#fde68a", floor: "vault", dress: "coins", sun: "#facc15" },
@@ -123,13 +123,6 @@ export function paintWorld(g, ctx, name) {
   paintDress(g, ctx, th, "far");
   paintField(g, ctx, th);
   paintDress(g, ctx, th, "near");
-
-  g.save();
-  g.font = "800 15px Trebuchet MS, sans-serif";
-  g.fillStyle = night ? "rgba(255,255,255,.7)" : "rgba(12,74,110,.5)";
-  g.fillText(`Round ${ctx.round} / ${ctx.maxRounds}   Alon ${ctx.roundWins.alon} – ${ctx.roundWins.dad} Dad`,
-    ctx.field.x + 14, ctx.field.y + 20);
-  g.restore();
 }
 
 function paintField(g, ctx, th) {
@@ -453,7 +446,8 @@ function paintDress(g, ctx, th, layer) {
     g.fillRect(f.x + 20, f.y + f.h - 22, f.w - 40, 10);
   }
   if (kind === "cloudbed") {
-    for (let i = 0; i < 6; i++) cloud(g, f.x + 30 + i * (f.w / 6), f.y + f.h - 18, 16, "rgba(255,255,255,.7)");
+    const fluff = ["#fb7185", "#a78bfa", "#38bdf8", "#fde047", "#f9a8d4", "#c4b5fd"];
+    for (let i = 0; i < 6; i++) cloud(g, f.x + 30 + i * (f.w / 6), f.y + f.h - 18, 16, fluff[i]);
   }
   if (kind === "lanterns") {
     for (let i = 0; i < 5; i++) {
@@ -507,12 +501,12 @@ function paintDress(g, ctx, th, layer) {
     }
   }
   if (kind === "drips") {
-    const cols = ["#fb7185", "#38bdf8", "#a78bfa"];
-    for (let i = 0; i < 8; i++) {
-      g.fillStyle = cols[i % 3];
-      g.globalAlpha = 0.35;
+    const cols = ["#fb7185", "#38bdf8", "#a78bfa", "#facc15"];
+    for (let i = 0; i < 10; i++) {
+      g.fillStyle = cols[i % 4];
+      g.globalAlpha = 0.55;
       g.beginPath();
-      g.ellipse(f.x + 20 + i * (f.w / 8), f.y + 10, 8, 12, 0, 0, Math.PI * 2);
+      g.ellipse(f.x + 20 + i * (f.w / 10), f.y + 12, 10, 16, 0, 0, Math.PI * 2);
       g.fill();
     }
     g.globalAlpha = 1;

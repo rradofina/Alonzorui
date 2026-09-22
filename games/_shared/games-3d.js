@@ -10,12 +10,15 @@ async function bootThree(ctx, bg) {
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, failIfMajorPerformanceCaveat: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    const probe = new THREE.Scene();
+    renderer.render(probe, new THREE.PerspectiveCamera());
   } catch (err) {
     console.warn("WebGL unavailable", err);
+    try { if (renderer) renderer.dispose(); } catch (_) {}
     return null;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(innerWidth, innerHeight);
   renderer.domElement.style.cssText = "position:fixed;inset:0;z-index:1;";
   document.body.appendChild(renderer.domElement);
   const canvas2 = document.getElementById("view");
@@ -75,9 +78,107 @@ function makeOrb(THREE, color) {
   return g;
 }
 
+function safeRender(ctx, t) {
+  if (!t || ctx.data.flat) return;
+  try {
+    t.renderer.render(t.scene, t.camera);
+  } catch (err) {
+    console.warn("WebGL render", err);
+    try { t.renderer.dispose(); } catch (_) {}
+    if (t.renderer.domElement && t.renderer.domElement.parentNode) {
+      t.renderer.domElement.remove();
+    }
+    ctx._three = null;
+    ctx.data.three = null;
+    useFlat(ctx, null);
+  }
+}
+
 function render3d(ctx) {
+  if (ctx.data.flat) {
+    drawFlat(ctx);
+    return;
+  }
   const t = ctx.data.three || ctx._three;
-  if (t) t.renderer.render(t.scene, t.camera);
+  if (!t) {
+    useFlat(ctx, null);
+    drawFlat(ctx);
+    return;
+  }
+  try {
+    t.renderer.render(t.scene, t.camera);
+  } catch (err) {
+    console.warn("WebGL render", err);
+    try { t.renderer.dispose(); } catch (_) {}
+    if (t.renderer.domElement && t.renderer.domElement.parentNode) {
+      t.renderer.domElement.remove();
+    }
+    ctx._three = null;
+    ctx.data.three = null;
+    useFlat(ctx, null);
+    drawFlat(ctx);
+  }
+}
+
+function useFlat(ctx, t) {
+  ctx.data.flat = !t;
+  const canvas2 = document.getElementById("view");
+  if (canvas2) canvas2.style.display = ctx.data.flat ? "block" : "none";
+  return !t;
+}
+
+function laneX(ctx, id, lane) {
+  const f = ctx.field;
+  const base = id === "alon" ? f.x + f.w * 0.28 : f.x + f.w * 0.72;
+  return base + (lane || 0) * 36;
+}
+
+function drawFlat(ctx) {
+  const kind = ctx.data.flatKind;
+  ctx.withShake(() => {
+    if (kind === "lanes") {
+      ctx.drawTheme("sunset");
+      const f = ctx.field;
+      ["alon", "dad"].forEach((id) => {
+        const x = laneX(ctx, id, 0);
+        ctx.g.fillStyle = id === "alon" ? "rgba(251,113,133,.28)" : "rgba(56,189,248,.28)";
+        ctx.g.fillRect(x - 54, f.y + 12, 108, f.h - 24);
+      });
+      (ctx.data.puffs || []).forEach((p) => {
+        const y = f.y + f.h - 40 - ((p.z + (ctx.data.z[p.who] || 0)) * 4);
+        if (y < f.y - 20 || y > f.y + f.h + 20) return;
+        ctx.prop("pearl", laneX(ctx, p.who, p.lane), y, 14);
+      });
+      ctx.alon.x = laneX(ctx, "alon", ctx.data.lanes.alon);
+      ctx.dad.x = laneX(ctx, "dad", ctx.data.lanes.dad);
+      ctx.alon.y = ctx.dad.y = f.y + f.h - 50;
+      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+    } else if (kind === "rings") {
+      ctx.drawTheme("sunset");
+      (ctx.data.flatRings || []).forEach((r) => {
+        ctx.g.strokeStyle = r.hit.alon || r.hit.dad ? "#86efac" : "#fbbf24";
+        ctx.g.lineWidth = 6;
+        ctx.g.beginPath(); ctx.g.arc(r.x, r.y, 28, 0, Math.PI * 2); ctx.g.stroke();
+      });
+      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+    } else if (kind === "marble") {
+      ctx.drawTheme("jungle");
+      (ctx.data.flatWalls || []).forEach((w) => {
+        ctx.g.fillStyle = "#115e59";
+        ctx.g.fillRect(w.x, w.y, w.w, w.h);
+      });
+      if (ctx.data.flatHole) ctx.prop("star", ctx.data.flatHole.x, ctx.data.flatHole.y, 16);
+      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+    } else if (kind === "pads") {
+      ctx.drawTheme("night");
+      (ctx.data.flatPads || []).forEach((p, i) => {
+        ctx.g.fillStyle = i === ctx.data.flatPads.length - 1 ? "#fde047" : "#a78bfa";
+        ctx.g.beginPath(); ctx.g.ellipse(p.x, p.y, 28, 14, 0, 0, Math.PI * 2); ctx.g.fill();
+      });
+      ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+    }
+    ctx.drawJuice();
+  });
 }
 
 function addMesh(ctx, mesh) {
@@ -112,7 +213,19 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x7dd3fc);
-      if (!t) return;
+      if (useFlat(ctx, t)) {
+        ctx.data.flatKind = "lanes";
+        ctx.data.lanes = { alon: 0, dad: 0 };
+        ctx.data.z = { alon: 0, dad: 0 };
+        ctx.data.done = { alon: false, dad: false };
+        ctx.data.finish = 82;
+        ctx.data.puffs = [];
+        for (let i = 0; i < 4 + n; i++) {
+          const lane = ((i * 2 + n) % 3) - 1;
+          ["alon", "dad"].forEach((id) => ctx.data.puffs.push({ who: id, lane, z: -16 - i * 16 }));
+        }
+        return;
+      }
       const { THREE, camera } = t;
       if (!ctx._worldSky) {
         camera.position.set(0, 6.2, 12);
@@ -171,17 +284,18 @@ export const games = {
     },
     update(ctx, dt) {
       const t = ctx.data.three;
-      if (!t) return;
+      if (!t && !ctx.data.flat) return;
       ["alon", "dad"].forEach((id) => {
         if (ctx.data.done[id]) return;
         const inn = ctx.input(id);
         if (ctx.pressed(id, "left")) ctx.data.lanes[id] = Math.max(-1, ctx.data.lanes[id] - 1);
         if (ctx.pressed(id, "right")) ctx.data.lanes[id] = Math.min(1, ctx.data.lanes[id] + 1);
-        const want = ctx.data.centers[id] + ctx.data.lanes[id] * 1.7;
-        ctx.data.x[id] += (want - ctx.data.x[id]) * Math.min(1, 12 * dt);
         ctx.data.z[id] += (15 + (inn.up ? 5 : 0)) * dt;
-        const orb = ctx.data.orbs[id];
-        orb.position.set(ctx.data.x[id], 0.85 + Math.sin(ctx.t * 6) * 0.08, -ctx.data.z[id]);
+        if (!ctx.data.flat) {
+          const want = ctx.data.centers[id] + ctx.data.lanes[id] * 1.7;
+          ctx.data.x[id] += (want - ctx.data.x[id]) * Math.min(1, 12 * dt);
+          ctx.data.orbs[id].position.set(ctx.data.x[id], 0.85 + Math.sin(ctx.t * 6) * 0.08, -ctx.data.z[id]);
+        }
         ctx.data.puffs.forEach((p) => {
           if (p.who !== id) return;
           if (Math.abs(p.z + ctx.data.z[id]) < 0.7 && ctx.data.lanes[id] === p.lane) {
@@ -196,11 +310,13 @@ export const games = {
         }
       });
       ctx.setGoal(`${Math.max(ctx.data.z.alon, ctx.data.z.dad) | 0}m`);
-      const midX = (ctx.data.x.alon + ctx.data.x.dad) * 0.08;
-      const lead = Math.max(ctx.data.z.alon, ctx.data.z.dad);
-      t.camera.position.lerp({ x: midX, y: 6, z: 12 - lead }, 0.1);
-      t.camera.lookAt(midX, 1.2, -lead - 12);
-      t.renderer.render(t.scene, t.camera);
+      if (t) {
+        const midX = (ctx.data.x.alon + ctx.data.x.dad) * 0.08;
+        const lead = Math.max(ctx.data.z.alon, ctx.data.z.dad);
+        t.camera.position.lerp({ x: midX, y: 6, z: 12 - lead }, 0.1);
+        t.camera.lookAt(midX, 1.2, -lead - 12);
+        safeRender(ctx, t);
+      }
     },
     draw: render3d
   },
@@ -219,7 +335,23 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x38bdf8);
-      if (!t) return;
+      if (useFlat(ctx, t)) {
+        ctx.data.flatKind = "rings";
+        const f = ctx.field;
+        const count = 6 + n;
+        ctx.data.flatRings = [];
+        for (let i = 0; i < count; i++) {
+          ctx.data.flatRings.push({
+            x: f.x + f.w * 0.5 + Math.sin(i * 0.8) * f.w * 0.22,
+            y: f.y + f.h - 90 - i * 52,
+            hit: { alon: false, dad: false }
+          });
+        }
+        ctx.data.need = count;
+        ctx.data.got = { alon: 0, dad: 0 };
+        ctx.place(0.35, 0.65, 0.82);
+        return;
+      }
       const { THREE, camera } = t;
       if (!ctx._worldRing) {
         camera.position.set(0, 4.2, 10);
@@ -256,6 +388,23 @@ export const games = {
     },
     update(ctx, dt) {
       const t = ctx.data.three;
+      if (ctx.data.flat) {
+        [ctx.alon, ctx.dad].forEach((p) => {
+          ctx.moveTopDown(p, 240, dt);
+          (ctx.data.flatRings || []).forEach((r) => {
+            if (r.hit[p.id]) return;
+            if (ctx.dist(p.x, p.y, r.x, r.y) < 30) {
+              r.hit[p.id] = true;
+              ctx.data.got[p.id] += 1;
+              ctx.addScore(p, 1, "RING");
+              ctx.chime();
+              if (ctx.data.got[p.id] >= ctx.data.need) ctx.winRound(p.id, "Hoop hero!");
+            }
+          });
+        });
+        ctx.setGoal(`${Math.max(ctx.data.got.alon, ctx.data.got.dad)}/${ctx.data.need}`);
+        return;
+      }
       if (!t) return;
       ["alon", "dad"].forEach((id) => {
         const inn = ctx.input(id);
@@ -281,7 +430,7 @@ export const games = {
       const lead = Math.min(ctx.data.pos.alon.z, ctx.data.pos.dad.z);
       t.camera.position.lerp({ x: 0, y: 4.4, z: lead + 10 }, 0.1);
       t.camera.lookAt(0, 2.1, lead - 8);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
       ctx.setGoal(`${Math.max(ctx.data.got.alon, ctx.data.got.dad)}/${ctx.data.need}`);
     },
     draw: render3d
@@ -301,7 +450,24 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x134e4a);
-      if (!t) return;
+      if (useFlat(ctx, t)) {
+        ctx.data.flatKind = "marble";
+        const f = ctx.field;
+        const map = (x, z) => ({
+          x: f.x + f.w * (0.5 + x / 16),
+          y: f.y + f.h * (0.5 + z / 16)
+        });
+        ctx.data.flatWalls = marbleLayout(n).map((w) => {
+          const p = map(w[0], w[1]);
+          return { x: p.x - w[2] * 10, y: p.y - w[3] * 10, w: w[2] * 20, h: w[3] * 20 };
+        });
+        ctx.data.flatHole = map(n === 1 ? 4.6 : 4.8, n === 1 ? -4.6 : -4.8);
+        ctx.data.done = { alon: false, dad: false };
+        const s = map(-5.2, 5.2);
+        ctx.alon.x = s.x; ctx.alon.y = s.y;
+        ctx.dad.x = s.x + 28; ctx.dad.y = s.y;
+        return;
+      }
       const { THREE, camera } = t;
       camera.position.set(0, 15, 11);
       if (!ctx._worldMarble) {
@@ -348,6 +514,28 @@ export const games = {
     },
     update(ctx, dt) {
       const t = ctx.data.three;
+      if (ctx.data.flat) {
+        [ctx.alon, ctx.dad].forEach((p) => {
+          if (ctx.data.done[p.id]) return;
+          ctx.moveTopDown(p, 220, dt);
+          (ctx.data.flatWalls || []).forEach((w) => {
+            const nx = ctx.clamp(p.x, w.x, w.x + w.w);
+            const ny = ctx.clamp(p.y, w.y, w.y + w.h);
+            const d = Math.hypot(p.x - nx, p.y - ny);
+            if (d < p.r - 2) {
+              const m = d || 1;
+              p.x = nx + (p.x - nx) / m * p.r;
+              p.y = ny + (p.y - ny) / m * p.r;
+            }
+          });
+          if (ctx.data.flatHole && ctx.dist(p.x, p.y, ctx.data.flatHole.x, ctx.data.flatHole.y) < 26) {
+            ctx.data.done[p.id] = true;
+            ctx.addScore(p, 1, "HOLE");
+            ctx.winRound(p.id, "Down the glow hole!");
+          }
+        });
+        return;
+      }
       if (!t) return;
       ["alon", "dad"].forEach((id) => {
         if (ctx.data.done[id]) return;
@@ -377,7 +565,7 @@ export const games = {
         }
       });
       t.camera.lookAt(0, 0, 0);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
     },
     draw: render3d
   },
@@ -396,7 +584,22 @@ export const games = {
     setup(ctx) { ctx.resetMatch(); },
     async setupRound(ctx, n) {
       const t = await bootThree(ctx, 0x0f172a);
-      if (!t) return;
+      if (useFlat(ctx, t)) {
+        ctx.data.flatKind = "pads";
+        const f = ctx.field;
+        const count = 6 + n;
+        ctx.data.flatPads = [];
+        for (let i = 0; i < count; i++) {
+          ctx.data.flatPads.push({
+            x: f.x + f.w * (i % 2 ? 0.58 : 0.42),
+            y: f.y + f.h - 50 - i * 42
+          });
+        }
+        ctx.data.idx = { alon: 0, dad: 0 };
+        ctx.data.cool = { alon: 0, dad: 0 };
+        ctx.data.done = { alon: false, dad: false };
+        return;
+      }
       const { THREE, camera } = t;
       if (!ctx._worldPads) {
         camera.position.set(0, 8, 12);
@@ -436,6 +639,33 @@ export const games = {
     },
     update(ctx, dt) {
       const t = ctx.data.three;
+      if (ctx.data.flat) {
+        ["alon", "dad"].forEach((id) => {
+          if (ctx.data.done[id]) return;
+          ctx.data.cool[id] -= dt;
+          const inn = ctx.input(id);
+          const pads = ctx.data.flatPads;
+          if (ctx.data.cool[id] <= 0 && (inn.up || inn.right)) {
+            ctx.data.idx[id] = Math.min(pads.length - 1, ctx.data.idx[id] + 1);
+            ctx.data.cool[id] = 0.22;
+            ctx.beep(640, 0.06, "triangle", 0.05);
+          }
+          if (ctx.data.cool[id] <= 0 && inn.left && ctx.data.idx[id] > 0) {
+            ctx.data.idx[id] -= 1;
+            ctx.data.cool[id] = 0.22;
+          }
+          const target = pads[ctx.data.idx[id]];
+          const p = id === "alon" ? ctx.alon : ctx.dad;
+          p.x += (target.x + (id === "alon" ? -12 : 12) - p.x) * Math.min(1, 10 * dt);
+          p.y += (target.y - 18 - p.y) * Math.min(1, 10 * dt);
+          if (ctx.data.idx[id] >= pads.length - 1) {
+            ctx.data.done[id] = true;
+            ctx.addScore(p, 1, "MOON");
+            ctx.winRound(id, "Moon hop!");
+          }
+        });
+        return;
+      }
       if (!t) return;
       ["alon", "dad"].forEach((id) => {
         if (ctx.data.done[id]) return;
@@ -463,7 +693,7 @@ export const games = {
       const lead = ctx.data.orbs.alon.position.clone().lerp(ctx.data.orbs.dad.position, 0.5);
       t.camera.position.lerp({ x: 0, y: 8, z: lead.z + 10 }, 0.08);
       t.camera.lookAt(lead.x, 0.4, lead.z);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
     },
     draw: render3d
   }

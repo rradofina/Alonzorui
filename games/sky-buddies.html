@@ -14,6 +14,7 @@
       overflow: hidden;
       user-select: none;
       touch-action: none;
+      overscroll-behavior: none;
     }
     button {
       background: transparent; border: 0; appearance: none; -webkit-appearance: none;
@@ -21,7 +22,7 @@
     }
     canvas { display: block; width: 100%; height: 100%; }
     .home {
-      position: fixed; top: 12px; left: 12px; z-index: 9;
+      position: fixed; top: 12px; left: 12px; z-index: 12;
       color: #fff; text-decoration: none; font-weight: 800; font-size: 18px;
       background: rgba(12, 74, 110, .42); padding: 8px 14px; border-radius: 999px;
     }
@@ -29,6 +30,11 @@
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
       z-index: 8; display: flex; gap: 8px; align-items: stretch; pointer-events: none;
       max-width: calc(100vw - 24px);
+    }
+    @media (max-width: 720px) {
+      #hud { top: 52px; gap: 6px; }
+      .pill { min-width: 88px; padding: 6px 10px; }
+      .pill .pts { font-size: 18px; }
     }
     #hud.off, .cover.off, .fail.off { display: none; }
     .pill {
@@ -142,7 +148,9 @@
     .cover {
       position: fixed; inset: 0; z-index: 10;
       display: flex; align-items: center; justify-content: center; flex-direction: column;
-      gap: 10px; text-align: center; padding: 24px;
+      gap: 10px; text-align: center; padding: 56px 24px 24px;
+      overflow-y: auto;
+      overscroll-behavior: none;
       background:
         radial-gradient(circle at 20% 10%, rgba(56,189,248,.55), transparent 42%),
         radial-gradient(circle at 85% 20%, rgba(251,113,133,.45), transparent 40%),
@@ -169,11 +177,12 @@
     .play {
       background: #ffd166; color: #3b2100; font-weight: 800; font-size: 28px;
       padding: 14px 36px; border-radius: 999px; box-shadow: 0 7px 0 #e09f1f; margin-top: 8px;
+      min-width: 168px; min-height: 56px;
     }
     .play:active { transform: translateY(4px); box-shadow: 0 3px 0 #e09f1f; }
-    .cover .home-btn {
+    .cover .home-btn, .fail .home-btn {
       display: inline-block; margin-top: 6px; color: #0c4a6e; font-weight: 800;
-      text-decoration: none; background: rgba(255,255,255,.7); padding: 8px 16px; border-radius: 999px;
+      text-decoration: none; background: rgba(255,255,255,.85); padding: 10px 22px; border-radius: 999px;
     }
     .emoji { font-size: 76px; line-height: 1; filter: drop-shadow(0 8px 0 rgba(3,105,161,.25)); }
     #win .emoji { animation: pop 700ms ease; }
@@ -269,7 +278,7 @@
       <span class="chip you"><span class="for-keys">Alon: WASD</span><span class="for-touch">Alon: left pad</span></span>
       <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
     </div>
-    <button class="play" id="go">Play</button>
+    <button class="play" id="go" type="button">Play</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
   <div class="cover off" id="win">
@@ -282,13 +291,14 @@
       <div class="box you">Alon<div class="n" id="winYou">0</div></div>
       <div class="box dad">Dad<div class="n" id="winDad">0</div></div>
     </div>
-    <button class="play" id="again">Play again</button>
+    <button class="play" id="again" type="button">Play again</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
   <div class="fail off" id="fail">
     <div class="emoji">🌤️</div>
     <h1 style="font-size:36px">Sky needs a moment</h1>
     <p>The 3D sky could not load. Try again on this same page.</p>
+    <button class="play" id="failRetry" type="button">Try again</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
 
@@ -315,11 +325,34 @@
       dad: { left: false, right: false, up: false, down: false }
     };
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    document.body.appendChild(renderer.domElement);
+    function showFail() {
+      document.getElementById("start")?.classList.add("off");
+      document.getElementById("win")?.classList.add("off");
+      document.getElementById("hud")?.classList.add("off");
+      document.getElementById("pads")?.classList.add("off");
+      document.getElementById("hints")?.classList.add("off");
+      document.getElementById("fail")?.classList.remove("off");
+    }
+
+    let renderer = null;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, failIfMajorPerformanceCaveat: false });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      const probe = new THREE.Scene();
+      renderer.render(probe, new THREE.PerspectiveCamera());
+      renderer.domElement.style.cssText = "position:fixed;inset:0;z-index:1;";
+      document.body.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("Sky Buddies WebGL", err);
+      try { if (renderer) renderer.dispose(); } catch (_) {}
+      renderer = null;
+      showFail();
+    }
+    if (!renderer) {
+      document.getElementById("go").onclick = () => showFail();
+    }
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x7ec8f8);
@@ -339,7 +372,7 @@
       camera.fov = portrait ? 70 : 58;
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
+      if (renderer) renderer.setSize(innerWidth, innerHeight);
     }
     addEventListener("resize", applyView);
     applyView();
@@ -1258,9 +1291,10 @@
     }
 
     function tick(now) {
+      if (!renderer) return;
       const dt = Math.min(0.033, (now - last) / 1000);
       last = now;
-
+      try {
       updateTrack();
       updateDecor(dt);
 
@@ -1305,9 +1339,18 @@
       updateCamera(dt, !playing && !winner);
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
+      } catch (err) {
+        console.warn("Sky Buddies tick", err);
+        renderer = null;
+        showFail();
+      }
     }
 
     function startGame() {
+      if (!renderer) {
+        showFail();
+        return;
+      }
       runZ = 0;
       speed = START_SPEED;
       nextSpawn = 18;
@@ -1330,12 +1373,21 @@
     }
 
     resetPlayers();
-    updateTrack();
     paintHud();
-    requestAnimationFrame(tick);
+    if (renderer) {
+      try {
+        updateTrack();
+        requestAnimationFrame(tick);
+      } catch (err) {
+        console.warn("Sky Buddies boot", err);
+        renderer = null;
+        showFail();
+      }
+    }
 
     document.getElementById("go").onclick = () => startGame();
     document.getElementById("again").onclick = () => startGame();
+    document.getElementById("failRetry").onclick = () => location.reload();
   </script>
   <script nomodule>
     document.getElementById("fail").classList.remove("off");

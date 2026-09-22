@@ -285,7 +285,7 @@ export const games = {
       ctx.data.cool = { alon: 0, dad: 0 };
       ctx.data.miss = { alon: 0, dad: 0 };
       const f = ctx.field;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 30;
+      ctx.alon.y = ctx.dad.y = ctx.standY();
       ctx.alon.x = f.x + f.w * 0.25; ctx.dad.x = f.x + f.w * 0.75;
     },
     update(ctx, dt) {
@@ -296,7 +296,7 @@ export const games = {
         const maxX = id === "alon" ? f.x + f.w / 2 - 20 : f.x + f.w - 30;
         p.x += ctx.input(id).ax * 300 * dt;
         p.x = ctx.clamp(p.x, minX, maxX);
-        p.y = f.y + f.h - 28;
+        p.y = ctx.standY();
         ctx.data.cool[id] -= dt;
         if (!ctx.data.fall[id] && ctx.data.cool[id] <= 0) {
           ctx.data.fall[id] = { x: p.x + (Math.random() - 0.5) * 30 * ctx.round, y: f.y + 12, vy: 140 + ctx.round * 20 };
@@ -305,7 +305,7 @@ export const games = {
         if (fl) {
           fl.vy += 240 * dt; fl.y += fl.vy * dt;
           fl.x += (p.x - fl.x) * 0.55 * dt;
-          const top = f.y + f.h - 42 - ctx.data.blocks[id].length * 22;
+          const top = ctx.standY() - 14 - ctx.data.blocks[id].length * 22;
           if (fl.y > top) {
             if (Math.abs(fl.x - p.x) < 42 || ctx.data.blocks[id].length === 0) {
               ctx.data.blocks[id].push({}); ctx.addScore(p, 1, "+blk"); ctx.chime();
@@ -330,9 +330,9 @@ export const games = {
           const p = id === "alon" ? ctx.alon : ctx.dad;
           (ctx.data.blocks[id] || []).forEach((_, i) => {
             g.fillStyle = p.color;
-            g.beginPath(); g.roundRect(p.x - 24, f.y + f.h - 52 - i * 22, 48, 20, 6); g.fill();
+            g.beginPath(); g.roundRect(p.x - 24, ctx.standY() - 24 - i * 22, 48, 20, 6); g.fill();
             g.fillStyle = "rgba(255,255,255,.28)";
-            g.fillRect(p.x - 18, f.y + f.h - 48 - i * 22, 36, 5);
+            g.fillRect(p.x - 18, ctx.standY() - 20 - i * 22, 36, 5);
           });
           const fl = ctx.data.fall && ctx.data.fall[id];
           if (fl) { g.fillStyle = p.color; g.beginPath(); g.roundRect(fl.x - 20, fl.y, 40, 18, 6); g.fill(); }
