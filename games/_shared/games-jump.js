@@ -9,8 +9,10 @@ function ground(ctx, worldW) {
 
 function followCam(ctx, dt) {
   const f = ctx.field;
-  const lead = Math.max(ctx.alon.x, ctx.dad.x);
-  const want = ctx.clamp(lead - f.w * 0.38, 0, Math.max(0, ctx.data.worldW - f.w));
+  const left = Math.min(ctx.alon.x, ctx.dad.x);
+  const right = Math.max(ctx.alon.x, ctx.dad.x);
+  const mid = (left + right) * 0.5;
+  const want = ctx.clamp(mid - f.w * 0.5, 0, Math.max(0, ctx.data.worldW - f.w));
   ctx.data.camX += (want - (ctx.data.camX || 0)) * Math.min(1, 6 * dt);
 }
 

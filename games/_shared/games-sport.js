@@ -486,6 +486,7 @@ export const games = {
       [ctx.alon, ctx.dad].forEach((p) => { if (!p.out) ctx.moveTopDown(p, 260, dt); });
       const s = ctx.data.spud;
       if (!ctx.data.hold) {
+        ctx.setGoal("grab!");
         [ctx.alon, ctx.dad].forEach((p) => {
           if (!p.out && ctx.dist(p.x, p.y, s.x, s.y) < 30) {
             ctx.data.hold = p.id; ctx.beep(360, 0.06, "sine", 0.06);

@@ -123,13 +123,6 @@ export function paintWorld(g, ctx, name) {
   paintDress(g, ctx, th, "far");
   paintField(g, ctx, th);
   paintDress(g, ctx, th, "near");
-
-  g.save();
-  g.font = "800 15px Trebuchet MS, sans-serif";
-  g.fillStyle = night ? "rgba(255,255,255,.7)" : "rgba(12,74,110,.5)";
-  g.fillText(`Round ${ctx.round} / ${ctx.maxRounds}   Alon ${ctx.roundWins.alon} – ${ctx.roundWins.dad} Dad`,
-    ctx.field.x + 14, ctx.field.y + 20);
-  g.restore();
 }
 
 function paintField(g, ctx, th) {
