@@ -9,11 +9,15 @@ function ground(ctx, worldW) {
 
 function followCam(ctx, dt) {
   const f = ctx.field;
-  const left = Math.min(ctx.alon.x, ctx.dad.x);
-  const right = Math.max(ctx.alon.x, ctx.dad.x);
+  const pad = (ctx.alon.r || 42) * 2.2;
+  const left = Math.min(ctx.alon.x, ctx.dad.x) - pad;
+  const right = Math.max(ctx.alon.x, ctx.dad.x) + pad;
   const mid = (left + right) * 0.5;
-  const want = ctx.clamp(mid - f.w * 0.5, 0, Math.max(0, ctx.data.worldW - f.w));
-  ctx.data.camX += (want - (ctx.data.camX || 0)) * Math.min(1, 6 * dt);
+  const want = ctx.clamp(mid - f.w * 0.5, 0, Math.max(0, (ctx.data.worldW || f.w) - f.w));
+  const cur = ctx.data.camX || 0;
+  const gap = Math.abs(want - cur);
+  if (gap > 280) ctx.data.camX = want;
+  else ctx.data.camX = cur + (want - cur) * Math.min(1, (gap > 120 ? 12 : 6) * dt);
 }
 
 function toScreen(ctx, x) { return x - (ctx.data.camX || 0); }
@@ -24,10 +28,14 @@ function platTick(ctx, dt, opts) {
     ctx.movePlatform(p, grav, dt);
     ctx.landOn(p, ctx.data.plats);
     p.x = ctx.clamp(p.x, p.r, ctx.data.worldW - p.r);
-    if (p.y > ctx.field.y + ctx.field.h + 40) {
-      p.x = 80 + (p.id === "dad" ? 50 : 0);
-      p.y = ctx.field.y + 40;
+    if (p.y > ctx.field.y + ctx.field.h + 20) {
+      const home = (ctx.data.plats || [])[1] || (ctx.data.plats || [])[0];
+      p.x = (home ? home.x + p.r * 1.4 : 80) + (p.id === "dad" ? p.r * 2.2 : 0);
+      p.y = home ? home.y - p.r : ctx.field.y + ctx.field.h * 0.5;
       p.vy = 0;
+      p.vx = 0;
+      p._ground = true;
+      ctx.data.camX = ctx.clamp(p.x - ctx.field.w * 0.35, 0, Math.max(0, (ctx.data.worldW || ctx.field.w) - ctx.field.w));
       ctx.hurt(p);
       ctx.punch(0.25);
     }
@@ -62,8 +70,9 @@ function drawScrollWorld(ctx, theme, extras) {
     const ox = ctx.data.camX || 0;
     ctx.alon.x -= ox; ctx.dad.x -= ox;
     ctx.drawBuddies(extras.faces);
-    ctx.alon.x += ox; ctx.dad.x += ox;
     ctx.g.restore();
+    ctx.drawBuddies(extras.faces);
+    ctx.alon.x += ox; ctx.dad.x += ox;
     ctx.drawJuice();
   });
 }
@@ -84,32 +93,33 @@ export const games = {
     setupRound(ctx, n) {
       const f = ctx.field;
       const r = ctx.sizeBuddies();
-      const platH = Math.max(30, Math.round(r * 0.72));
+      const platH = Math.max(32, Math.round(r * 0.78));
       const steps = n === 1 ? 4 : n === 2 ? 5 : 6;
-      const climb = f.h * (0.56 + n * 0.03);
-      const rise = Math.max(r * 1.05, climb / Math.max(1, steps));
-      const stepW = Math.max(r * 6.4, Math.min(f.w * 0.4, r * 8.2));
-      const overlap = Math.round(r * 1.7);
-      const W = Math.max(f.w + 40, 80 + steps * (stepW - overlap) + stepW);
+      const rise = Math.max(r * 0.95, (f.h * 0.5) / Math.max(1, steps - 1));
+      const homeW = Math.min(Math.max(r * 6.2, f.w * 0.5), f.w * 0.78);
+      const stepW = Math.min(Math.max(r * 5.4, f.w * 0.34), f.w * 0.58);
+      const run = homeW + (steps - 1) * (stepW * 0.64);
+      const W = Math.max(f.w + 8, run + r * 4);
       ctx.data.worldW = W;
       ctx.data.camX = 0;
       const floorY = f.y + f.h - platH;
-      const plats = [P(ctx, 0, floorY, W, platH + 8)];
-      let x = 16;
-      let y = floorY - 6;
+      const plats = [P(ctx, 0, floorY, W, platH + 10)];
+      let x = 12;
+      let y = floorY - 4;
       for (let i = 0; i < steps; i++) {
-        plats.push(P(ctx, x, y, stepW, platH));
-        x += stepW - overlap;
+        const w = i === 0 ? homeW : stepW;
+        plats.push(P(ctx, x, y, w, platH));
+        x += w * 0.68;
         y -= rise;
       }
       const last = plats[plats.length - 1];
       ctx.data.plats = plats;
       ctx.data.coins = plats.slice(1, -1).map((pl) => ({
-        x: pl.x + pl.w * 0.62, y: pl.y - r * 0.7, live: true
+        x: pl.x + pl.w * 0.7, y: pl.y - r * 0.75, live: true
       }));
-      ctx.data.flag = { x: last.x + last.w * 0.7, y: last.y - r * 0.15 };
-      ctx.alon.x = plats[1].x + r * 1.15;
-      ctx.dad.x = plats[1].x + r * 3.1;
+      ctx.data.flag = { x: last.x + last.w * 0.62, y: last.y - r * 0.1 };
+      ctx.alon.x = plats[1].x + r * 1.4;
+      ctx.dad.x = plats[1].x + r * 3.6;
       ctx.alon.y = ctx.dad.y = plats[1].y - r;
       ctx.alon.vy = ctx.dad.vy = 0;
       ctx.alon._ground = ctx.dad._ground = true;

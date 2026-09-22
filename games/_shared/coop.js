@@ -788,6 +788,7 @@ export function run(spec) {
         ctx.setRoundGoal(1);
         ctx.paint();
         ctx.countIn(spec.roundNames ? spec.roundNames[0] : "Round 1");
+        window.__qa = ctx;
       } finally {
         ctx.starting = false;
       }
