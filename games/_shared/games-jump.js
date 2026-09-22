@@ -93,52 +93,74 @@ export const games = {
     setupRound(ctx, n) {
       const f = ctx.field;
       const r = ctx.sizeBuddies();
-      const platH = Math.max(32, Math.round(r * 0.78));
-      const steps = n === 1 ? 4 : n === 2 ? 5 : 6;
-      const rise = Math.max(r * 0.95, (f.h * 0.5) / Math.max(1, steps - 1));
-      const homeW = Math.min(Math.max(r * 6.2, f.w * 0.5), f.w * 0.78);
-      const stepW = Math.min(Math.max(r * 5.4, f.w * 0.34), f.w * 0.58);
-      const run = homeW + (steps - 1) * (stepW * 0.64);
-      const W = Math.max(f.w + 8, run + r * 4);
-      ctx.data.worldW = W;
+      const platH = Math.max(30, Math.round(r * 0.7));
+      const steps = f.h < 340 ? 3 : n === 1 ? 4 : 5;
+      ctx.data.worldW = f.x + f.w;
       ctx.data.camX = 0;
+      const left = f.x + 10;
+      const right = f.x + f.w - 10;
       const floorY = f.y + f.h - platH;
-      const plats = [P(ctx, 0, floorY, W, platH + 10)];
-      let x = 12;
-      let y = floorY - 4;
+      const topY = f.y + Math.max(r * 1.7, f.h * 0.16);
+      const rise = Math.min(r * 2.05, (floorY - platH - topY) / Math.max(1, steps - 1));
+      const homeW = Math.min((right - left) * 0.34, r * 6.4);
+      const stepW = Math.min((right - left) * 0.28, r * 5.2);
+      const plats = [P(ctx, f.x, floorY, f.w, platH + 10)];
       for (let i = 0; i < steps; i++) {
+        const t = steps === 1 ? 0 : i / (steps - 1);
         const w = i === 0 ? homeW : stepW;
+        const x = left + t * (right - left - w);
+        const y = floorY - 8 - i * rise;
         plats.push(P(ctx, x, y, w, platH));
-        x += w * 0.68;
-        y -= rise;
       }
       const last = plats[plats.length - 1];
       ctx.data.plats = plats;
       ctx.data.coins = plats.slice(1, -1).map((pl) => ({
-        x: pl.x + pl.w * 0.7, y: pl.y - r * 0.75, live: true
+        x: pl.x + pl.w * 0.62, y: pl.y - r * 0.7, live: true
       }));
-      ctx.data.flag = { x: last.x + last.w * 0.62, y: last.y - r * 0.1 };
-      ctx.alon.x = plats[1].x + r * 1.4;
-      ctx.dad.x = plats[1].x + r * 3.6;
-      ctx.alon.y = ctx.dad.y = plats[1].y - r;
-      ctx.alon.vy = ctx.dad.vy = 0;
-      ctx.alon._ground = ctx.dad._ground = true;
+      ctx.data.flag = { x: last.x + last.w * 0.58, y: last.y - r * 0.08 };
+      ctx.parkTogether();
       ctx.alon.hearts = ctx.dad.hearts = 99;
     },
     update(ctx, dt) {
-      platTick(ctx, dt, { speed: 310, jump: 760 });
-      followCam(ctx, dt);
-      const grab = (ctx.alon.r || 42) * 0.95;
+      platTick(ctx, dt, { speed: 300, jump: 740 });
+      ctx.data.camX = 0;
+      const r = ctx.alon.r || 42;
+      const grab = r * 0.95;
       [ctx.alon, ctx.dad].forEach((p) => {
+        p.x = ctx.clamp(p.x, ctx.field.x + p.r * 0.4, ctx.field.x + ctx.field.w - p.r * 0.4);
         ctx.data.coins.forEach((c) => {
           if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < grab) {
             c.live = false; ctx.pickup(p, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
           }
         });
-        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < grab + 8) ctx.winRound(p.id, "Flag hug!");
+        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < grab + 10) ctx.winRound(p.id, "Flag hug!");
       });
     },
-    draw(ctx) { drawScrollWorld(ctx, "meadow", { faces: { alon: "🐥", dad: "🐧" } }); }
+    draw(ctx) {
+      const r = ctx.alon.r || 42;
+      ctx.withShake(() => {
+        ctx.drawTheme("meadow");
+        ctx.drawPlats(ctx.data.plats);
+        (ctx.data.coins || []).forEach((c) => {
+          if (c.live) ctx.prop("coin", c.x, c.y, Math.max(18, r * 0.42));
+        });
+        const fl = ctx.data.flag;
+        if (fl) {
+          const pole = Math.max(64, r * 1.45);
+          ctx.g.fillStyle = "#92400e";
+          ctx.g.fillRect(fl.x - 5, fl.y - 12, 10, pole);
+          ctx.g.fillStyle = "#fbbf24";
+          ctx.g.beginPath();
+          ctx.g.moveTo(fl.x + 5, fl.y - 10);
+          ctx.g.lineTo(fl.x + Math.max(52, r * 1.25), fl.y + r * 0.38);
+          ctx.g.lineTo(fl.x + 5, fl.y + r * 0.78);
+          ctx.g.fill();
+          ctx.icon(fl.x + 12, fl.y + 10, "🏁", "#fde047", Math.max(18, r * 0.42));
+        }
+        ctx.drawBuddies({ alon: "🐥", dad: "🐧" });
+        ctx.drawJuice();
+      });
+    }
   },
 
   "bounce-caps": {

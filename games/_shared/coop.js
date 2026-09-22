@@ -275,15 +275,16 @@ export function run(spec) {
     matchScore: { alon: 0, dad: 0 },
     padReserve() {
       const coarse = matchMedia("(pointer: coarse), (max-width: 900px)").matches;
-      if (!coarse) return 52;
+      if (!coarse) return innerHeight < 520 ? 76 : 70;
       const landscape = innerWidth > innerHeight;
       const pad = landscape ? Math.min(innerHeight * 0.28, 168) : Math.min(innerWidth * 0.40, 184);
       return pad + 52;
     },
     buddySize() {
       const f = ctx.field;
-      const short = Math.min(f.w, f.h);
-      return ctx.clamp(Math.round(short * 0.17), 42, 60);
+      const byH = f.h * 0.2;
+      const byW = f.w * 0.14;
+      return ctx.clamp(Math.round(Math.min(byH, byW * 1.35)), 48, 100);
     },
     sizeBuddies() {
       const r = ctx.buddySize();
@@ -297,7 +298,7 @@ export function run(spec) {
       return !!(spec.rounds && spec.rounds > 1);
     },
     setRoundGoal(n) {
-      ctx.setGoal(`R${n} · first to ${ctx.needWins()}`);
+      ctx.setGoal(`R${n}/${ctx.maxRounds || spec.rounds || 3}`);
     },
     resize() {
       const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -307,7 +308,7 @@ export function run(spec) {
       canvas.height = ctx.h * dpr;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const landscape = innerWidth > innerHeight;
-      const top = innerWidth < 720 ? (landscape ? 72 : 118) : 78;
+      const top = innerWidth < 720 ? (landscape ? 72 : 118) : (innerHeight < 520 ? 62 : 72);
       ctx.field = {
         x: 16,
         y: top,
@@ -527,9 +528,30 @@ export function run(spec) {
       ctx.round = 1;
       ctx.roundWins = { alon: 0, dad: 0 };
       ctx.matchScore = { alon: 0, dad: 0 };
+      ctx.alon.score = 0;
+      ctx.dad.score = 0;
       ctx.freeze = 0;
       ctx.floaters = [];
       ctx.shake = 0;
+      ctx.data.camX = 0;
+      const who = document.getElementById("goalWho");
+      if (who) who.textContent = spec.goal || "PLAY";
+      ctx.setGoal(spec.goalPts || "");
+      ctx.paint();
+    },
+    parkTogether() {
+      ctx.data.camX = 0;
+      const home = (ctx.data.plats || [])[1] || (ctx.data.plats || [])[0];
+      const r = ctx.alon.r || ctx.buddySize();
+      if (home) {
+        ctx.alon.x = home.x + r * 1.4;
+        ctx.dad.x = home.x + r * 3.5;
+        ctx.alon.y = ctx.dad.y = home.y - r;
+      } else {
+        ctx.place(0.22, 0.4, 0.72);
+      }
+      ctx.alon.vx = ctx.dad.vx = ctx.alon.vy = ctx.dad.vy = 0;
+      ctx.alon._ground = ctx.dad._ground = true;
     },
     later(ms, fn) {
       const gen = ctx.bootGen;
@@ -549,6 +571,8 @@ export function run(spec) {
       ctx.freeze = 2.4;
       ctx.sizeBuddies();
       if (spec.setupRound) await spec.setupRound(ctx, n);
+      const whoEl = document.getElementById("goalWho");
+      if (whoEl) whoEl.textContent = spec.goal || "PLAY";
       ctx.setRoundGoal(n);
       ctx.paint();
       ctx.countIn(title || `Round ${n}`);
@@ -557,22 +581,27 @@ export function run(spec) {
       if (ctx.frozen() || !ctx.playing) return;
       ctx.roundWins[who] = (ctx.roundWins[who] || 0) + 1;
       const p = who === "alon" ? ctx.alon : ctx.dad;
+      const taken = ctx.round;
       ctx.float(p.x, p.y - p.r - 8, "ROUND!", p.color);
       ctx.paint();
+      const whoEl = document.getElementById("goalWho");
+      if (whoEl) whoEl.textContent = "ROUND";
+      ctx.setGoal(`${p.name} takes R${taken}!`);
       ctx.punch(0.4);
       ctx.goalHorn();
       ctx.burst(p.x, p.y, p.color, 36);
-      ctx.banner(`${p.name} takes round ${ctx.round}!`, 900);
-      ctx.freeze = 1.35;
+      ctx.banner(`${p.name} takes R${taken}!`, 700);
+      if (spec.parkOnWin !== false) ctx.parkTogether();
+      ctx.freeze = 0.7;
       const need = ctx.needWins();
-      ctx.later(1300, () => {
-        if (ctx.roundWins[who] >= need || ctx.round >= ctx.maxRounds) {
+      ctx.later(620, () => {
+        if (ctx.roundWins[who] >= need || taken >= ctx.maxRounds) {
           const a = ctx.roundWins.alon, d = ctx.roundWins.dad;
           const w = a === d ? "tie" : a > d ? "alon" : "dad";
           ctx.end(w, w === "tie" ? "Match tie!" : `${w === "alon" ? "Alon" : "Dad"} wins the match!`,
             text || `Rounds  Alon ${a} – ${d} Dad`, spec.emoji);
         } else {
-          ctx.startRound(ctx.round + 1);
+          ctx.startRound(taken + 1);
         }
       });
     },
@@ -774,6 +803,7 @@ export function run(spec) {
       ctx.bootGen = (ctx.bootGen || 0) + 1;
       try {
         ctx.resize();
+        ctx.resetMatch();
         resetPlayers();
         ctx.resetMatch();
         ctx.t = 0;
@@ -820,6 +850,7 @@ export function run(spec) {
   addEventListener("resize", () => ctx.resize());
   ctx.resize();
   resetPlayers();
+  ctx.resetMatch();
   if (spec.idleSetup) spec.idleSetup(ctx);
   requestAnimationFrame(tick);
   document.getElementById("go").onclick = () => startGame();
