@@ -252,7 +252,7 @@ export const games = {
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.speed = 150 + n * 25;
       const f = ctx.field;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 32;
+      ctx.alon.y = ctx.dad.y = ctx.standY();
       ctx.alon.x = f.x + f.w * 0.28; ctx.dad.x = f.x + f.w * 0.72;
       for (let i = 0; i < 3; i++) spawnFruit(ctx, true);
     },
@@ -262,7 +262,7 @@ export const games = {
       [ctx.alon, ctx.dad].forEach((p) => {
         p.x += ctx.input(p.id).ax * 320 * dt;
         p.x = ctx.clamp(p.x, f.x + 24, f.x + f.w - 24);
-        p.y = f.y + f.h - 32;
+        p.y = ctx.standY();
       });
       ctx.data.fall.forEach((it) => {
         it.y += it.vy * dt;

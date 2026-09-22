@@ -31,6 +31,11 @@
       z-index: 8; display: flex; gap: 8px; align-items: stretch; pointer-events: none;
       max-width: calc(100vw - 24px);
     }
+    @media (max-width: 720px) {
+      #hud { top: 52px; gap: 6px; }
+      .pill { min-width: 88px; padding: 6px 10px; }
+      .pill .pts { font-size: 18px; }
+    }
     #hud.off, .cover.off, .fail.off { display: none; }
     .pill {
       font-weight: 800; padding: 7px 12px; border-radius: 22px;
@@ -175,9 +180,9 @@
       min-width: 168px; min-height: 56px;
     }
     .play:active { transform: translateY(4px); box-shadow: 0 3px 0 #e09f1f; }
-    .cover .home-btn {
+    .cover .home-btn, .fail .home-btn {
       display: inline-block; margin-top: 6px; color: #0c4a6e; font-weight: 800;
-      text-decoration: none; background: rgba(255,255,255,.7); padding: 8px 16px; border-radius: 999px;
+      text-decoration: none; background: rgba(255,255,255,.85); padding: 10px 22px; border-radius: 999px;
     }
     .emoji { font-size: 76px; line-height: 1; filter: drop-shadow(0 8px 0 rgba(3,105,161,.25)); }
     #win .emoji { animation: pop 700ms ease; }
@@ -293,6 +298,7 @@
     <div class="emoji">🌤️</div>
     <h1 style="font-size:36px">Sky needs a moment</h1>
     <p>The 3D sky could not load. Try again on this same page.</p>
+    <button class="play" id="failRetry" type="button">Try again</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
 
@@ -1271,10 +1277,16 @@
       document.getElementById("win").classList.remove("off");
     }
 
+    function showFail() {
+      const el = document.getElementById("fail");
+      if (el) el.classList.remove("off");
+    }
+
     function tick(now) {
+      if (!renderer) return;
       const dt = Math.min(0.033, (now - last) / 1000);
       last = now;
-
+      try {
       updateTrack();
       updateDecor(dt);
 
@@ -1317,13 +1329,18 @@
       pose(dad);
       sparks.update(dt);
       updateCamera(dt, !playing && !winner);
-      if (renderer) renderer.render(scene, camera);
+      renderer.render(scene, camera);
       requestAnimationFrame(tick);
+      } catch (err) {
+        console.warn("Sky Buddies tick", err);
+        renderer = null;
+        showFail();
+      }
     }
 
     function startGame() {
       if (!renderer) {
-        document.getElementById("fail").classList.remove("off");
+        showFail();
         return;
       }
       runZ = 0;
@@ -1348,12 +1365,21 @@
     }
 
     resetPlayers();
-    updateTrack();
     paintHud();
-    requestAnimationFrame(tick);
+    if (renderer) {
+      try {
+        updateTrack();
+        requestAnimationFrame(tick);
+      } catch (err) {
+        console.warn("Sky Buddies boot", err);
+        renderer = null;
+        showFail();
+      }
+    }
 
     document.getElementById("go").onclick = () => startGame();
     document.getElementById("again").onclick = () => startGame();
+    document.getElementById("failRetry").onclick = () => location.reload();
   </script>
   <script nomodule>
     document.getElementById("fail").classList.remove("off");

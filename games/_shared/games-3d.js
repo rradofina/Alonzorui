@@ -10,12 +10,15 @@ async function bootThree(ctx, bg) {
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, failIfMajorPerformanceCaveat: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    const probe = new THREE.Scene();
+    renderer.render(probe, new THREE.PerspectiveCamera());
   } catch (err) {
     console.warn("WebGL unavailable", err);
+    try { if (renderer) renderer.dispose(); } catch (_) {}
     return null;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(innerWidth, innerHeight);
   renderer.domElement.style.cssText = "position:fixed;inset:0;z-index:1;";
   document.body.appendChild(renderer.domElement);
   const canvas2 = document.getElementById("view");
@@ -75,13 +78,46 @@ function makeOrb(THREE, color) {
   return g;
 }
 
+function safeRender(ctx, t) {
+  if (!t || ctx.data.flat) return;
+  try {
+    t.renderer.render(t.scene, t.camera);
+  } catch (err) {
+    console.warn("WebGL render", err);
+    try { t.renderer.dispose(); } catch (_) {}
+    if (t.renderer.domElement && t.renderer.domElement.parentNode) {
+      t.renderer.domElement.remove();
+    }
+    ctx._three = null;
+    ctx.data.three = null;
+    useFlat(ctx, null);
+  }
+}
+
 function render3d(ctx) {
   if (ctx.data.flat) {
     drawFlat(ctx);
     return;
   }
   const t = ctx.data.three || ctx._three;
-  if (t) t.renderer.render(t.scene, t.camera);
+  if (!t) {
+    useFlat(ctx, null);
+    drawFlat(ctx);
+    return;
+  }
+  try {
+    t.renderer.render(t.scene, t.camera);
+  } catch (err) {
+    console.warn("WebGL render", err);
+    try { t.renderer.dispose(); } catch (_) {}
+    if (t.renderer.domElement && t.renderer.domElement.parentNode) {
+      t.renderer.domElement.remove();
+    }
+    ctx._three = null;
+    ctx.data.three = null;
+    useFlat(ctx, null);
+    drawFlat(ctx);
+  }
 }
 
 function useFlat(ctx, t) {
@@ -279,7 +315,7 @@ export const games = {
         const lead = Math.max(ctx.data.z.alon, ctx.data.z.dad);
         t.camera.position.lerp({ x: midX, y: 6, z: 12 - lead }, 0.1);
         t.camera.lookAt(midX, 1.2, -lead - 12);
-        t.renderer.render(t.scene, t.camera);
+        safeRender(ctx, t);
       }
     },
     draw: render3d
@@ -394,7 +430,7 @@ export const games = {
       const lead = Math.min(ctx.data.pos.alon.z, ctx.data.pos.dad.z);
       t.camera.position.lerp({ x: 0, y: 4.4, z: lead + 10 }, 0.1);
       t.camera.lookAt(0, 2.1, lead - 8);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
       ctx.setGoal(`${Math.max(ctx.data.got.alon, ctx.data.got.dad)}/${ctx.data.need}`);
     },
     draw: render3d
@@ -529,7 +565,7 @@ export const games = {
         }
       });
       t.camera.lookAt(0, 0, 0);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
     },
     draw: render3d
   },
@@ -657,7 +693,7 @@ export const games = {
       const lead = ctx.data.orbs.alon.position.clone().lerp(ctx.data.orbs.dad.position, 0.5);
       t.camera.position.lerp({ x: 0, y: 8, z: lead.z + 10 }, 0.08);
       t.camera.lookAt(lead.x, 0.4, lead.z);
-      t.renderer.render(t.scene, t.camera);
+      safeRender(ctx, t);
     },
     draw: render3d
   }

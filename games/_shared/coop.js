@@ -489,6 +489,9 @@ export function run(spec) {
     },
     punch(n) { ctx.shake = Math.max(ctx.shake, n || 0.28); },
     frozen() { return ctx.freeze > 0; },
+    standY(lift) {
+      return ctx.field.y + ctx.field.h - (lift == null ? 56 : lift);
+    },
     place(alonN, dadN, yN) {
       const f = ctx.field;
       ctx.alon.x = f.x + f.w * (alonN == null ? 0.22 : alonN);

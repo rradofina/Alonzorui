@@ -122,7 +122,7 @@ export const games = {
       ctx.data.need = 8 + n * 3;
       ctx.data.got = { alon: 0, dad: 0 };
       ctx.data.left = 14 + n * 4;
-      ctx.alon.y = ctx.dad.y = f.y + f.h - 38;
+      ctx.alon.y = ctx.dad.y = ctx.standY();
       ctx.alon.x = f.x + f.w * 0.3; ctx.dad.x = f.x + f.w * 0.7;
     },
     update(ctx, dt) {
@@ -131,7 +131,7 @@ export const games = {
         const inn = ctx.input(p.id);
         p.x += inn.ax * 300 * dt;
         p.x = ctx.clamp(p.x, f.x + p.r, f.x + f.w - p.r);
-        p.y = f.y + f.h - 38;
+        p.y = ctx.standY();
         ctx.data.cool[p.id] -= dt;
         if (inn.up && ctx.data.cool[p.id] <= 0) {
           ctx.data.cool[p.id] = 0.16;
