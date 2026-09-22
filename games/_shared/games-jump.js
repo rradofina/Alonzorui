@@ -102,8 +102,8 @@ export const games = {
       const floorY = f.y + f.h - platH;
       const topY = f.y + Math.max(r * 1.7, f.h * 0.16);
       const rise = Math.min(r * 2.05, (floorY - platH - topY) / Math.max(1, steps - 1));
-      const homeW = Math.min((right - left) * 0.34, r * 6.4);
-      const stepW = Math.min((right - left) * 0.28, r * 5.2);
+      const homeW = Math.min((right - left) * 0.36, r * 6.6);
+      const stepW = Math.min((right - left) * 0.3, r * 5.4);
       const plats = [P(ctx, f.x, floorY, f.w, platH + 10)];
       for (let i = 0; i < steps; i++) {
         const t = steps === 1 ? 0 : i / (steps - 1);
@@ -117,23 +117,29 @@ export const games = {
       ctx.data.coins = plats.slice(1, -1).map((pl) => ({
         x: pl.x + pl.w * 0.62, y: pl.y - r * 0.7, live: true
       }));
-      ctx.data.flag = { x: last.x + last.w * 0.58, y: last.y - r * 0.08 };
+      ctx.data.flag = { x: last.x + last.w * 0.72, y: last.y - r * 0.08 };
       ctx.parkTogether();
       ctx.alon.hearts = ctx.dad.hearts = 99;
     },
     update(ctx, dt) {
-      platTick(ctx, dt, { speed: 300, jump: 740 });
+      const jump = ctx.field.h < 360 ? 580 : 740;
+      platTick(ctx, dt, { speed: 300, jump });
       ctx.data.camX = 0;
       const r = ctx.alon.r || 42;
-      const grab = r * 0.95;
+      const last = (ctx.data.plats || [])[(ctx.data.plats || []).length - 1];
+      const fl = ctx.data.flag;
       [ctx.alon, ctx.dad].forEach((p) => {
         p.x = ctx.clamp(p.x, ctx.field.x + p.r * 0.4, ctx.field.x + ctx.field.w - p.r * 0.4);
         ctx.data.coins.forEach((c) => {
-          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < grab) {
+          if (c.live && ctx.dist(p.x, p.y, c.x, c.y) < p.r * 0.85) {
             c.live = false; ctx.pickup(p, "+coin"); ctx.chime(); ctx.burst(c.x, c.y, "#fbbf24", 10);
           }
         });
-        if (ctx.dist(p.x, p.y, ctx.data.flag.x, ctx.data.flag.y) < grab + 10) ctx.winRound(p.id, "Flag hug!");
+        if (!fl) return;
+        const pole = Math.abs(p.x - fl.x) < p.r + 40 && p.y + p.r > fl.y - Math.max(90, r * 1.8);
+        const onLast = last && p.x > last.x - 12 && p.x < last.x + last.w + 12
+          && p.y + p.r >= last.y - 22 && p.y < last.y + (last.h || 28) + p.r;
+        if (pole || onLast) ctx.winRound(p.id, "Flag hug!");
       });
     },
     draw(ctx) {

@@ -544,8 +544,11 @@ export function run(spec) {
       const home = (ctx.data.plats || [])[1] || (ctx.data.plats || [])[0];
       const r = ctx.alon.r || ctx.buddySize();
       if (home) {
-        ctx.alon.x = home.x + r * 1.4;
-        ctx.dad.x = home.x + r * 3.5;
+        const left = home.x + r * 1.05;
+        const right = home.x + Math.max(home.w, r * 3.2) - r * 1.05;
+        const gap = Math.min(r * 2.2, Math.max(r * 1.65, (right - left) * 0.45));
+        ctx.alon.x = left;
+        ctx.dad.x = Math.min(right, left + gap);
         ctx.alon.y = ctx.dad.y = home.y - r;
       } else {
         ctx.place(0.22, 0.4, 0.72);
