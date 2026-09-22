@@ -278,7 +278,7 @@
       <span class="chip you"><span class="for-keys">Alon: WASD</span><span class="for-touch">Alon: left pad</span></span>
       <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
     </div>
-    <button class="play" id="go">Play</button>
+    <button class="play" id="go" type="button">Play</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
   <div class="cover off" id="win">
@@ -291,7 +291,7 @@
       <div class="box you">Alon<div class="n" id="winYou">0</div></div>
       <div class="box dad">Dad<div class="n" id="winDad">0</div></div>
     </div>
-    <button class="play" id="again">Play again</button>
+    <button class="play" id="again" type="button">Play again</button>
     <a class="home-btn" href="../index.html">Home</a>
   </div>
   <div class="fail off" id="fail">
@@ -325,20 +325,33 @@
       dad: { left: false, right: false, up: false, down: false }
     };
 
+    function showFail() {
+      document.getElementById("start")?.classList.add("off");
+      document.getElementById("win")?.classList.add("off");
+      document.getElementById("hud")?.classList.add("off");
+      document.getElementById("pads")?.classList.add("off");
+      document.getElementById("hints")?.classList.add("off");
+      document.getElementById("fail")?.classList.remove("off");
+    }
+
     let renderer = null;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, failIfMajorPerformanceCaveat: false });
       renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
       renderer.setSize(innerWidth, innerHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
+      const probe = new THREE.Scene();
+      renderer.render(probe, new THREE.PerspectiveCamera());
       renderer.domElement.style.cssText = "position:fixed;inset:0;z-index:1;";
       document.body.appendChild(renderer.domElement);
     } catch (err) {
       console.warn("Sky Buddies WebGL", err);
-      document.getElementById("fail").classList.remove("off");
+      try { if (renderer) renderer.dispose(); } catch (_) {}
+      renderer = null;
+      showFail();
     }
     if (!renderer) {
-      document.getElementById("go").onclick = () => document.getElementById("fail").classList.remove("off");
+      document.getElementById("go").onclick = () => showFail();
     }
 
     const scene = new THREE.Scene();
@@ -1275,11 +1288,6 @@
         box.appendChild(d);
       }
       document.getElementById("win").classList.remove("off");
-    }
-
-    function showFail() {
-      const el = document.getElementById("fail");
-      if (el) el.classList.remove("off");
     }
 
     function tick(now) {

@@ -118,7 +118,7 @@ function injectShell(spec) {
         <span class="chip alon"><span class="for-keys">Alon: WASD</span><span class="for-touch">Alon: left pad</span></span>
         <span class="chip dad"><span class="for-keys">Dad: ←↑↓→</span><span class="for-touch">Dad: right pad</span></span>
       </div>
-      <button class="play" id="go">Play</button>
+      <button class="play" id="go" type="button">Play</button>
       <a class="home-btn" href="../index.html">Home</a>
     </div>
     <div class="cover off" id="win">
@@ -131,7 +131,7 @@ function injectShell(spec) {
         <div class="box alon">Alon<div class="n" id="winAlon">0</div></div>
         <div class="box dad">Dad<div class="n" id="winDad">0</div></div>
       </div>
-      <button class="play" id="again">Play again</button>
+      <button class="play" id="again" type="button">Play again</button>
       <a class="home-btn" href="../index.html">Home</a>
     </div>
   `);
